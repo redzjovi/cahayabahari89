@@ -220,7 +220,7 @@ const id: Dict = {
 const dicts: Record<Locale, Dict> = { en, id };
 
 class LocaleStore {
-	current = $state<Locale>('en');
+	current = $state<Locale>('id');
 
 	init() {
 		if (!browser) return;
