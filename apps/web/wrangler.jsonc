@@ -1,30 +1,24 @@
 {
 	"name": "cahayabahari89-web",
+	"main": ".svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2025-09-01",
-	"pages_build_output_dir": ".svelte-kit/cloudflare",
+	"compatibility_flags": ["nodejs_als"],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "cahayabahari89-db",
-			"database_id": "local-dev-placeholder",
-			"migrations_dir": "drizzle"
-		},
-		{
-			"binding": "cahayabahari89_db",
-			"database_name": "cahayabahari89-db",
 			"database_id": "ca94baff-e473-475c-a22e-571e6f1a415c",
-			"remote": true
+			"migrations_dir": "drizzle"
 		}
 	],
 	"r2_buckets": [
 		{
 			"binding": "IMAGES",
 			"bucket_name": "cahayabahari89-images"
-		},
-		{
-			"bucket_name": "cahayabahari89-images",
-			"binding": "cahayabahari89_images",
-			"remote": true
 		}
 	],
 	"vars": {

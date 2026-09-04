@@ -7,6 +7,6 @@ export default defineConfig({
 	driver: 'd1-http',
 	dbCredentials: {
 		wrangerConfigPath: './wrangler.jsonc',
-		databaseId: 'local-dev-placeholder'
+		databaseId: 'ca94baff-e473-475c-a22e-571e6f1a415c'
 	}
 });
