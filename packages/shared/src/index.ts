@@ -12,6 +12,8 @@ export const productsQuerySchema = z.object({
 export const contactSchema = z.object({
 	name: z.string().min(2).max(100),
 	email: z.string().email(),
+	company: z.string().max(150).optional(),
+	volume: z.string().max(60).optional(),
 	message: z.string().min(10).max(2000)
 });
 

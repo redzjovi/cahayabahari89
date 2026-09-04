@@ -107,13 +107,15 @@ app.get('/api/products/:slug', async (c) => {
 const contactSchema = z.object({
 	name: z.string().min(2).max(100),
 	email: z.string().email(),
+	company: z.string().max(150).optional(),
+	volume: z.string().max(60).optional(),
 	message: z.string().min(10).max(2000)
 });
 
 app.post('/api/contact', zValidator('json', contactSchema), async (c) => {
-	const { name, email, message } = c.req.valid('json');
+	const { name, email, company, volume, message } = c.req.valid('json');
 	const db = createDb(c.env.DB);
-	await db.insert(leads).values({ name, email, message });
+	await db.insert(leads).values({ name, email, company, volume, message });
 	// TODO: Resend email via fetch if RESEND_API_KEY set
 	return c.json({ ok: true }, 201);
 });

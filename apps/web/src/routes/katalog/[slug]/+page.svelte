@@ -1,39 +1,81 @@
 <script lang="ts">
+	import { t, locale } from '$lib/locale.svelte';
+	import { reveal } from '$lib/reveal';
+	import ProductCard from '$lib/components/ProductCard.svelte';
+	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
+
 	let { data } = $props();
 	const p = $derived(data.product as any);
+
+	const WA_NUMBER = '6281234567890';
+	const waLink = $derived(
+		`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hello, I'm interested in ${p.name} (${p.sku ?? p.slug})`)}`
+	);
+
+	function idr(n: number) {
+		return n.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US');
+	}
 </script>
 
 <svelte:head>
-	<title>{p.name} — Katalog Cahaya Bahari 89</title>
+	<title>{p.name} — Cahaya Bahari 89</title>
 	<meta name="description" content={p.description ?? p.name} />
 	<meta property="og:title" content={p.name} />
 	<meta property="og:description" content={p.description ?? p.name} />
 </svelte:head>
 
-<a href="/katalog" class="text-sm underline text-zinc-600">&larr; Kembali ke katalog</a>
-<h1 class="mt-2 text-3xl font-bold">{p.name}</h1>
-<p class="text-zinc-600">SKU: {p.sku ?? '-'} • Rp {(p.price / 100).toLocaleString('id-ID')}</p>
+<section class="mx-auto max-w-6xl px-4 pb-8 pt-12">
+	<a href="/katalog" class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
 
-{#if p.images?.length}
-	<div class="mt-4 grid gap-2 sm:grid-cols-3">
-		{#each p.images as img}
-			<div class="aspect-video rounded bg-zinc-100 flex items-center justify-center text-xs text-zinc-500">
-				{img.r2Key}
+	<div class="mt-6 grid items-start gap-10 lg:grid-cols-2">
+		<div>
+			{#if p.images?.length}
+				<PhotoPlaceholder label={p.images[0].alt ?? p.name} aspect="aspect-[4/3]" />
+				{#if p.images.length > 1}
+					<div class="mt-3 grid grid-cols-3 gap-3">
+						{#each p.images.slice(1, 4) as img}
+							<PhotoPlaceholder label={img.alt ?? p.name} aspect="aspect-[4/3]" />
+						{/each}
+					</div>
+				{/if}
+			{:else}
+				<PhotoPlaceholder label={p.name} aspect="aspect-[4/3]" />
+			{/if}
+		</div>
+
+		<div use:reveal>
+			{#if p.category}
+				<a href="/katalog?cat={p.category.slug}" class="inline-block rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-strong">{p.category.name}</a>
+			{/if}
+			<h1 class="mt-3 font-display text-4xl font-bold tracking-tight">{p.name}</h1>
+			<p class="mt-2 font-display text-3xl font-bold text-brand">Rp {idr(p.price)}<span class="text-base font-medium text-muted">{t().katalog.per}</span></p>
+			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
+
+			<div class="mt-6 flex flex-wrap gap-3">
+				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">WhatsApp Order</a>
+				<a href="/contact" class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().detail.ask}</a>
 			</div>
-		{/each}
+
+			<div class="mt-8 overflow-hidden rounded-card border border-line">
+				<h2 class="border-b border-line bg-band px-5 py-3 text-sm font-bold uppercase tracking-[0.12em]">{t().detail.specs}</h2>
+				<dl class="divide-y divide-line text-sm">
+					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">SKU</dt><dd class="font-semibold">{p.sku ?? '-'}</dd></div>
+					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">{t().detail.category}</dt><dd class="font-semibold">{p.category?.name ?? '-'}</dd></div>
+					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">Storage</dt><dd class="font-semibold">0–4°C</dd></div>
+					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">Origin</dt><dd class="font-semibold">Certified waters</dd></div>
+				</dl>
+			</div>
+		</div>
 	</div>
-{:else}
-	<div class="mt-4 aspect-video rounded bg-zinc-100 flex items-center justify-center text-sm text-zinc-500">
-		No image yet (upload R2 key via admin API)
-	</div>
-{/if}
 
-<p class="mt-4 max-w-2xl whitespace-pre-line text-zinc-800">{p.description ?? 'No description.'}</p>
-
-{#if p.category}
-	<p class="mt-4 text-sm">Kategori: <a href="/katalog?cat={p.category.slug}" class="underline">{p.category.name}</a></p>
-{/if}
-
-<div class="mt-6">
-	<a href="/contact" class="rounded bg-black px-4 py-2 text-white">Tanya produk ini</a>
-</div>
+	{#if (data.related as any[]).length}
+		<div class="mt-16">
+			<h2 class="font-display text-2xl font-bold">{t().detail.related}</h2>
+			<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+				{#each data.related as r}
+					<ProductCard product={r} />
+				{/each}
+			</div>
+		</div>
+	{/if}
+</section>

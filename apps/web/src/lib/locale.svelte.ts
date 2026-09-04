@@ -1,0 +1,253 @@
+import { browser } from '$app/environment';
+
+export type Locale = 'en' | 'id';
+const STORAGE_KEY = 'cb89-locale';
+
+const en = {
+	nav: { home: 'Home', about: 'About', quality: 'Quality', products: 'Products', contact: 'Contact', order: 'Order Now' },
+	hero: {
+		badge: 'Premium salmon, ocean-fresh daily',
+		titleA: 'Ocean-fresh salmon,',
+		titleB: 'from sea to table.',
+		sub: 'Cahaya Bahari 89 supplies premium salmon and fresh fish with an unbroken cold chain — for restaurants, hotels, retailers, and your family table.',
+		ctaProducts: 'Browse Products',
+		ctaContact: 'Talk to Sales',
+		freshBadge: 'Fresh today',
+		freshSub: ' graded this morning'
+	},
+	stats: [
+		{ value: '100%', label: 'Cold-chain kept' },
+		{ value: '24h', label: 'Sea to store' },
+		{ value: '50+', label: 'B2B partners' },
+		{ value: '4.9', label: 'Customer rating' }
+	],
+	featured: { eyebrow: 'Featured', title: 'Salmon best sellers', sub: 'Our most-ordered cuts this week.', viewAll: 'View all products' },
+	quality: {
+		eyebrow: 'Why choose us',
+		title: 'Freshness you can verify',
+		sub: 'Every batch is graded, temperature-logged, and traceable.',
+		items: [
+			{ title: 'Graded daily', text: 'Each fish is inspected and graded every morning before listing.' },
+			{ title: 'Cold chain 0–4°C', text: 'Unbroken refrigeration from landing to delivery van.' },
+			{ title: 'Traceable origin', text: 'Know the waters and landing date of every batch.' }
+		]
+	},
+	certs: { eyebrow: 'Certified', title: 'Standards we meet', items: ['HACCP', 'Halal Certified', 'Hygiene Grade A', 'Cold-Chain Audited'] },
+	cta: { title: 'Need salmon for your business?', sub: 'Get wholesale pricing and a delivery schedule today.', button: 'Request Quote' },
+	footer: {
+		tagline: 'Premium salmon and fresh fish, delivered with the cold chain intact.',
+		products: 'Products',
+		company: 'Company',
+		contact: 'Export Desk',
+		rights: 'All rights reserved.'
+	},
+	about: {
+		eyebrow: 'Our story',
+		title: 'A seafood company built on cold water and trust',
+		p1: 'Cahaya Bahari 89 started with one belief: great salmon should taste like the ocean it came from. We work directly with fishers and certified farms, grade every batch at dawn, and move it under constant refrigeration.',
+		p2: 'Today we supply restaurants, hotels, and retailers — and pack family-sized portions for home cooks who refuse to compromise.',
+		milestones: [
+			{ year: '2019', text: 'Founded as a single market stall with one chiller.' },
+			{ year: '2021', text: 'First B2B contracts with restaurants and hotels.' },
+			{ year: '2023', text: 'Dedicated cold-chain fleet and online catalog.' },
+			{ year: '2025', text: 'Export-grade grading line and 50+ partners.' }
+		],
+		values: [
+			{ title: 'Freshness first', text: 'If it would not serve our family, we do not sell it.' },
+			{ title: 'Honest grading', text: 'What is on the label is what is in the box.' },
+			{ title: 'Ocean respect', text: 'Certified sources and zero-waste processing.' }
+		]
+	},
+	qualityPage: {
+		eyebrow: 'Quality & export',
+		title: 'Export-grade handling, every single day',
+		steps: [
+			{ title: '1. Sourcing', text: 'Certified farms and day-boat landings only.' },
+			{ title: '2. Grading', text: 'Dawn inspection: color, firmness, smell, temperature.' },
+			{ title: '3. Processing', text: 'Fillet, portion, and vacuum-pack in a chilled room.' },
+			{ title: '4. Cold chain', text: '0–4°C from our floor to your door, logged.' }
+		],
+		sustain: { title: 'Sustainability', text: 'Certified sources, full-fish utilization (belly, head, bones for stock), recyclable insulated packaging.' }
+	},
+	katalog: {
+		title: 'Product catalog',
+		sub: 'Salmon and fresh fish, priced transparently.',
+		search: 'Search salmon...',
+		catAll: 'All',
+		filter: 'Filter',
+		empty: 'No products match. Try another keyword.',
+		seedHint: 'Seed via POST /api/admin/products with a Bearer token.',
+		page: 'Page',
+		of: 'of',
+		prev: 'Prev',
+		next: 'Next',
+		per: '/kg',
+		bestSeller: 'Best Seller'
+	},
+	detail: {
+		back: 'Back to catalog',
+		category: 'Category',
+		ask: 'Ask about this product',
+		specs: 'Specifications',
+		related: 'You may also like',
+		noDesc: 'No description yet.'
+	},
+	contact: {
+		eyebrow: 'Contact',
+		title: 'Talk to our sales desk',
+		sub: 'Retail, wholesale, or export — we reply within one business day.',
+		name: 'Full name',
+		company: 'Company (optional)',
+		email: 'Email',
+		volume: 'Monthly volume',
+		volumes: ['Just browsing', '< 50 kg', '50–200 kg', '200 kg – 1 ton', '> 1 ton (export)'],
+		message: 'Message (min. 10 characters)',
+		send: 'Send inquiry',
+		ok: 'Thank you! Your inquiry is received — we reply within one business day.',
+		fail: 'Failed to send. Please try again.',
+		direct: 'Prefer WhatsApp? Chat with sales directly.'
+	}
+};
+
+export type Dict = typeof en;
+
+const id: Dict = {
+	nav: { home: 'Beranda', about: 'Tentang', quality: 'Kualitas', products: 'Produk', contact: 'Kontak', order: 'Pesan Sekarang' },
+	hero: {
+		badge: 'Salmon premium, segar setiap hari',
+		titleA: 'Salmon segar dari laut,',
+		titleB: 'langsung ke meja Anda.',
+		sub: 'Cahaya Bahari 89 memasok salmon premium dan ikan segar dengan rantai dingin tanpa putus — untuk resto, hotel, retail, dan keluarga Anda.',
+		ctaProducts: 'Lihat Produk',
+		ctaContact: 'Hubungi Sales',
+		freshBadge: 'Segar hari ini',
+		freshSub: ' grading pagi ini'
+	},
+	stats: [
+		{ value: '100%', label: 'Rantai dingin terjaga' },
+		{ value: '24 jam', label: 'Laut ke toko' },
+		{ value: '50+', label: 'Mitra B2B' },
+		{ value: '4,9', label: 'Rating pelanggan' }
+	],
+	featured: { eyebrow: 'Unggulan', title: 'Salmon terlaris', sub: 'Potongan paling dipesan minggu ini.', viewAll: 'Lihat semua produk' },
+	quality: {
+		eyebrow: 'Kenapa kami',
+		title: 'Kesegaran yang bisa diverifikasi',
+		sub: 'Setiap batch di-grading, tercatat suhunya, dan terlacak asalnya.',
+		items: [
+			{ title: 'Grading harian', text: 'Setiap ikan diperiksa dan di-grading tiap pagi sebelum dijual.' },
+			{ title: 'Rantai dingin 0–4°C', text: 'Pendinginan tanpa putus dari pendaratan hingga armada antar.' },
+			{ title: 'Asal terlacak', text: 'Ketahui perairan dan tanggal pendaratan setiap batch.' }
+		]
+	},
+	certs: { eyebrow: 'Sertifikasi', title: 'Standar yang kami penuhi', items: ['HACCP', 'Sertifikat Halal', 'Higiene Grade A', 'Audit Rantai Dingin'] },
+	cta: { title: 'Butuh salmon untuk bisnis Anda?', sub: 'Dapatkan harga grosir dan jadwal pengiriman hari ini.', button: 'Minta Penawaran' },
+	footer: {
+		tagline: 'Salmon premium dan ikan segar, dikirim dengan rantai dingin terjaga.',
+		products: 'Produk',
+		company: 'Perusahaan',
+		contact: 'Meja Ekspor',
+		rights: 'Hak cipta dilindungi.'
+	},
+	about: {
+		eyebrow: 'Cerita kami',
+		title: 'Perusahaan seafood yang dibangun dari air dingin dan kepercayaan',
+		p1: 'Cahaya Bahari 89 berawal dari satu keyakinan: salmon yang hebat harus terasa seperti laut asalnya. Kami bekerja langsung dengan nelayan dan farm bersertifikat, me-grading setiap batch saat fajar, dan memindahkannya dalam pendinginan konstan.',
+		p2: 'Kini kami memasok resto, hotel, dan retail — serta mengemas porsi keluarga untuk juru masak rumahan yang menolak kompromi.',
+		milestones: [
+			{ year: '2019', text: 'Berdiri sebagai satu lapak pasar dengan satu chiller.' },
+			{ year: '2021', text: 'Kontrak B2B pertama dengan resto dan hotel.' },
+			{ year: '2023', text: 'Armada rantai dingin sendiri dan katalog online.' },
+			{ year: '2025', text: 'Lini grading kelas ekspor dan 50+ mitra.' }
+		],
+		values: [
+			{ title: 'Kesegaran utama', text: 'Yang tak layak untuk keluarga kami, tak kami jual.' },
+			{ title: 'Grading jujur', text: 'Isi kemasan sama dengan labelnya.' },
+			{ title: 'Hormat pada laut', text: 'Sumber bersertifikat dan pengolahan tanpa sisa.' }
+		]
+	},
+	qualityPage: {
+		eyebrow: 'Kualitas & ekspor',
+		title: 'Penanganan kelas ekspor, setiap hari',
+		steps: [
+			{ title: '1. Sumber', text: 'Hanya farm bersertifikat dan pendaratan kapal harian.' },
+			{ title: '2. Grading', text: 'Inspeksi fajar: warna, kekenyalan, aroma, suhu.' },
+			{ title: '3. Pengolahan', text: 'Fillet, porsi, dan vakum dalam ruang dingin.' },
+			{ title: '4. Rantai dingin', text: '0–4°C dari lantai kami ke pintu Anda, tercatat.' }
+		],
+		sustain: { title: 'Keberlanjutan', text: 'Sumber bersertifikat, utilisasi seluruh ikan (belly, kepala, tulang untuk kaldu), kemasan insulasi daur ulang.' }
+	},
+	katalog: {
+		title: 'Katalog produk',
+		sub: 'Salmon dan ikan segar, harga transparan.',
+		search: 'Cari salmon...',
+		catAll: 'Semua',
+		filter: 'Filter',
+		empty: 'Tidak ada produk yang cocok. Coba kata kunci lain.',
+		seedHint: 'Seed via POST /api/admin/products dengan Bearer token.',
+		page: 'Halaman',
+		of: 'dari',
+		prev: 'Prev',
+		next: 'Next',
+		per: '/kg',
+		bestSeller: 'Terlaris'
+	},
+	detail: {
+		back: 'Kembali ke katalog',
+		category: 'Kategori',
+		ask: 'Tanya produk ini',
+		specs: 'Spesifikasi',
+		related: 'Mungkin Anda suka',
+		noDesc: 'Belum ada deskripsi.'
+	},
+	contact: {
+		eyebrow: 'Kontak',
+		title: 'Hubungi meja penjualan',
+		sub: 'Retail, grosir, atau ekspor — kami balas maksimal satu hari kerja.',
+		name: 'Nama lengkap',
+		company: 'Perusahaan (opsional)',
+		email: 'Email',
+		volume: 'Volume bulanan',
+		volumes: ['Baru lihat-lihat', '< 50 kg', '50–200 kg', '200 kg – 1 ton', '> 1 ton (ekspor)'],
+		message: 'Pesan (min. 10 karakter)',
+		send: 'Kirim inquiry',
+		ok: 'Terima kasih! Inquiry Anda diterima — kami balas maksimal satu hari kerja.',
+		fail: 'Gagal mengirim. Silakan coba lagi.',
+		direct: 'Lebih suka WhatsApp? Chat langsung dengan sales.'
+	}
+};
+
+const dicts: Record<Locale, Dict> = { en, id };
+
+class LocaleStore {
+	current = $state<Locale>('en');
+
+	init() {
+		if (!browser) return;
+		const saved = localStorage.getItem(STORAGE_KEY);
+		if (saved === 'en' || saved === 'id') this.apply(saved);
+	}
+
+	set(loc: Locale) {
+		this.apply(loc);
+		if (browser) {
+			try {
+				localStorage.setItem(STORAGE_KEY, loc);
+			} catch {
+				// ignore
+			}
+		}
+	}
+
+	private apply(loc: Locale) {
+		this.current = loc;
+		if (browser) document.documentElement.lang = loc;
+	}
+}
+
+export const locale = new LocaleStore();
+
+/** Reactive translator — reads locale.current so components re-render on switch. */
+export function t(): Dict {
+	return dicts[locale.current];
+}

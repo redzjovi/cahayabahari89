@@ -6,6 +6,8 @@ export const actions: Actions = {
 		const payload = {
 			name: String(data.get('name') ?? ''),
 			email: String(data.get('email') ?? ''),
+			company: String(data.get('company') ?? '') || undefined,
+			volume: String(data.get('volume') ?? '') || undefined,
 			message: String(data.get('message') ?? '')
 		};
 		// POST to embedded Hono (same origin, no CORS needed)

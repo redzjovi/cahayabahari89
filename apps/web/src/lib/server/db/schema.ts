@@ -22,7 +22,7 @@ export const products = sqliteTable(
 		sku: text('sku').unique(),
 		name: text('name').notNull(),
 		description: text('description'),
-		price: integer('price').notNull().default(0), // store cents
+		price: integer('price').notNull().default(0), // store IDR rupiah directly
 		categoryId: integer('category_id').references(() => categories.id),
 		status: text('status').notNull().default('active'), // active | draft
 		createdAt: text('created_at').default(sql`(datetime('now'))`)
@@ -52,6 +52,8 @@ export const leads = sqliteTable('leads', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	name: text('name').notNull(),
 	email: text('email').notNull(),
+	company: text('company'),
+	volume: text('volume'),
 	message: text('message').notNull(),
 	createdAt: text('created_at').default(sql`(datetime('now'))`)
 });

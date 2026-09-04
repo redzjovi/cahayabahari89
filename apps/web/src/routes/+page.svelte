@@ -1,18 +1,109 @@
+<script lang="ts">
+	import { t } from '$lib/locale.svelte';
+	import { reveal } from '$lib/reveal';
+	import SectionHead from '$lib/components/SectionHead.svelte';
+	import ProductCard from '$lib/components/ProductCard.svelte';
+	import CertBadge from '$lib/components/CertBadge.svelte';
+	import WaveDivider from '$lib/components/WaveDivider.svelte';
+	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
+
+	let { data } = $props();
+</script>
+
 <svelte:head>
-	<title>Cahaya Bahari 89 — Company</title>
-	<meta name="description" content="Cahaya Bahari 89 — trusted partner for marine products and catalog showcase." />
+	<title>Cahaya Bahari 89 — Premium Salmon & Fresh Fish</title>
+	<meta name="description" content="Cahaya Bahari 89 — premium salmon and fresh fish supplier. Browse the catalog, check prices, contact sales." />
 </svelte:head>
 
-<section class="py-10">
-	<h1 class="text-4xl font-bold tracking-tight">Cahaya Bahari 89</h1>
-	<p class="mt-3 max-w-2xl text-zinc-600">Company website v1 — company profile + katalog showcase. Fast, SEO-ready, on Cloudflare edge (Hono + SvelteKit + D1/R2).</p>
-	<div class="mt-6 flex gap-3">
-		<a href="/katalog" class="rounded bg-black px-4 py-2 text-white">Lihat Katalog</a>
-		<a href="/contact" class="rounded border px-4 py-2">Hubungi Kami</a>
+<!-- HERO -->
+<section class="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 lg:grid-cols-2 lg:pt-20">
+	<div>
+		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
+		<h1 class="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+			{t().hero.titleA}<br />
+			<span class="text-brand">{t().hero.titleB}</span>
+		</h1>
+		<p class="mt-5 max-w-xl text-lg leading-relaxed text-muted">{t().hero.sub}</p>
+		<div class="mt-8 flex flex-wrap gap-3">
+			<a href="/katalog" class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">{t().hero.ctaProducts}</a>
+			<a href="/contact" class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().hero.ctaContact}</a>
+		</div>
+		<dl class="mt-10 grid grid-cols-2 gap-6 border-t border-line pt-8 sm:grid-cols-4">
+			{#each t().stats as s}
+				<div>
+					<dt class="sr-only">{s.label}</dt>
+					<dd class="font-display text-2xl font-bold text-brand sm:text-3xl">{s.value}</dd>
+					<dd class="mt-1 text-sm text-muted">{s.label}</dd>
+				</div>
+			{/each}
+		</dl>
 	</div>
-	<div class="mt-8 grid gap-4 sm:grid-cols-3">
-		<div class="rounded border p-4"><h3 class="font-semibold">Trusted</h3><p class="text-sm text-zinc-600">Curated products, clear specs.</p></div>
-		<div class="rounded border p-4"><h3 class="font-semibold">Fast Edge</h3><p class="text-sm text-zinc-600">Cloudflare global CDN, unlimited bandwidth free.</p></div>
-		<div class="rounded border p-4"><h3 class="font-semibold">Ready for Scale</h3><p class="text-sm text-zinc-600">D1 + R2 showcase -> cart/payment later.</p></div>
+	<div class="relative">
+		<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[4/5] sm:aspect-[5/5]" />
+		<div class="anim-float absolute -bottom-5 -left-3 flex items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 shadow-card sm:-left-6">
+			<span class="inline-block h-3 w-3 rounded-full bg-accent" aria-hidden="true"></span>
+			<span>
+				<span class="block text-sm font-bold">{t().hero.freshBadge}</span>
+				<span class="block text-xs text-muted">0–4°C{t().hero.freshSub}</span>
+			</span>
+		</div>
+	</div>
+</section>
+
+<WaveDivider />
+
+<!-- FEATURED PRODUCTS -->
+<section class="mx-auto max-w-6xl px-4 py-16">
+	<div class="flex flex-wrap items-end justify-between gap-4">
+		<SectionHead eyebrow={t().featured.eyebrow} title={t().featured.title} sub={t().featured.sub} />
+		<a href="/katalog" class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
+	</div>
+	{#if data.featured.length}
+		<div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+			{#each data.featured as p, i}
+				<ProductCard product={p} badge={i === 0} />
+			{/each}
+		</div>
+	{:else}
+		<p use:reveal class="mt-8 rounded-card border border-dashed border-line p-8 text-center text-muted">
+			{t().katalog.empty} {t().katalog.seedHint}
+		</p>
+	{/if}
+</section>
+
+<!-- QUALITY BAND -->
+<section class="bg-band">
+	<div class="mx-auto max-w-6xl px-4 py-16">
+		<SectionHead eyebrow={t().quality.eyebrow} title={t().quality.title} sub={t().quality.sub} align="center" />
+		<div class="mt-10 grid gap-5 md:grid-cols-3">
+			{#each t().quality.items as q, i}
+				<div use:reveal class="rounded-card border border-line bg-surface p-7 shadow-card">
+					<span class="font-display text-sm font-semibold tracking-[0.2em] text-accent-strong">0{i + 1}</span>
+					<h3 class="mt-2 font-display text-xl font-bold">{q.title}</h3>
+					<p class="mt-2 text-muted">{q.text}</p>
+				</div>
+			{/each}
+		</div>
+	</div>
+</section>
+
+<WaveDivider />
+
+<!-- CERTIFICATIONS -->
+<section class="mx-auto max-w-6xl px-4 py-16 text-center">
+	<SectionHead eyebrow={t().certs.eyebrow} title={t().certs.title} align="center" />
+	<div use:reveal class="mt-8 flex flex-wrap justify-center gap-3">
+		{#each t().certs.items as c}
+			<CertBadge label={c} />
+		{/each}
+	</div>
+</section>
+
+<!-- CTA -->
+<section class="mx-auto max-w-6xl px-4 pb-4">
+	<div use:reveal class="rounded-card bg-brand px-8 py-12 text-center text-brand-ink shadow-card sm:px-16">
+		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t().cta.title}</h2>
+		<p class="mx-auto mt-3 max-w-xl opacity-80">{t().cta.sub}</p>
+		<a href="/contact" class="mt-7 inline-block rounded-full bg-accent px-8 py-3.5 font-bold text-accent-ink transition hover:brightness-110">{t().cta.button}</a>
 	</div>
 </section>
