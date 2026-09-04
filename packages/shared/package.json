@@ -1,0 +1,11 @@
+{
+	"name": "@cahayabahari89/shared",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"main": "./src/index.ts",
+	"scripts": {},
+	"dependencies": {
+		"zod": "^4.5.4"
+	}
+}

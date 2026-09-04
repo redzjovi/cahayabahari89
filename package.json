@@ -1,0 +1,12 @@
+{
+  "name": "cahayabahari89",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "check": "pnpm --filter web check"
+  }
+}

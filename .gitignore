@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds & output (monorepo-wide; apps/web/.gitignore also covers web-level)
+.output/
+.svelte-kit/
+build/
+dist/
+.vercel/
+.netlify/
+.wrangler/
+.turbo/
+
+# Cloudflare local dev (secrets + local state)
+.dev.vars
+
+# Drizzle local sqlite (migrations in apps/web/drizzle/ stay tracked)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
+# Env (keep examples tracked)
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Vite timestamp artifacts
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
