@@ -5,7 +5,7 @@
 	import { enhance } from '$app/forms';
 	let { form } = $props();
 
-	const WA_NUMBER = '6281234567890';
+	const WA_NUMBER = '6287877118199';
 	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
 </script>
 
@@ -56,7 +56,7 @@
 			<div class="rounded-card border border-line bg-surface p-7 shadow-card">
 				<h3 class="font-display text-xl font-bold">Export Desk</h3>
 				<ul class="mt-4 space-y-3 text-sm text-muted">
-					<li><a href={waLink} target="_blank" rel="noreferrer" class="font-bold text-brand hover:underline">WhatsApp: +62 812-3456-7890</a></li>
+					<li><a href={waLink} target="_blank" rel="noreferrer" class="font-bold text-brand hover:underline">WhatsApp: +62 878-7711-8199</a></li>
 					<li>sales@cahayabahari89.id</li>
 					<li>Jakarta, Indonesia</li>
 					<li>Mon–Sat, 07:00–17:00 WIB</li>

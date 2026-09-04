@@ -7,7 +7,7 @@
 	let { data } = $props();
 	const p = $derived(data.product as any);
 
-	const WA_NUMBER = '6281234567890';
+	const WA_NUMBER = '6287877118199';
 	const waLink = $derived(
 		`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hello, I'm interested in ${p.name} (${p.sku ?? p.slug})`)}`
 	);

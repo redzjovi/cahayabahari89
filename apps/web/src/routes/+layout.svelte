@@ -9,7 +9,7 @@
 	let { children } = $props();
 	let menuOpen = $state(false);
 
-	const WA_NUMBER = '6281234567890';
+	const WA_NUMBER = '6287877118199';
 	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
 </script>
 
@@ -97,7 +97,7 @@
 		<div>
 			<h4 class="text-sm font-bold uppercase tracking-[0.14em] opacity-70">{t().footer.contact}</h4>
 			<ul class="mt-3 space-y-2 text-sm">
-				<li><a href={waLink} target="_blank" rel="noreferrer" class="hover:underline">WhatsApp: +62 812-3456-7890</a></li>
+				<li><a href={waLink} target="_blank" rel="noreferrer" class="hover:underline">WhatsApp: +62 878-7711-8199</a></li>
 				<li><a href="/contact" class="hover:underline">sales@cahayabahari89.id</a></li>
 				<li class="opacity-80">Jakarta, Indonesia</li>
 			</ul>
