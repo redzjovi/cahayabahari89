@@ -51,11 +51,18 @@
 				Admin
 			</span>
 			<nav class="flex items-center gap-1 text-sm font-bold">
+				{#if adminSession.can('products.write')}
+					<a href={localize('/admin/products', data.locale)} class="rounded-full px-3.5 py-1.5 transition hover:bg-surface">{t().admin.productsTitle}</a>
+				{/if}
+				{#if adminSession.can('categories.write')}
+					<a href={localize('/admin/categories', data.locale)} class="rounded-full px-3.5 py-1.5 transition hover:bg-surface">{t().admin.categoriesTitle}</a>
+				{/if}
 				{#if adminSession.can('users.manage')}
 					<a href={localize('/admin/users', data.locale)} class="rounded-full px-3.5 py-1.5 transition hover:bg-surface">{t().admin.users}</a>
 				{/if}
 				{#if adminSession.can('roles.manage')}
 					<a href={localize('/admin/roles', data.locale)} class="rounded-full px-3.5 py-1.5 transition hover:bg-surface">{t().admin.roles}</a>
+					<a href={localize('/admin/permissions', data.locale)} class="rounded-full px-3.5 py-1.5 transition hover:bg-surface">{t().admin.permissionsTitle}</a>
 				{/if}
 			</nav>
 			<span class="ml-auto flex items-center gap-2">

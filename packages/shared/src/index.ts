@@ -62,6 +62,24 @@ export const adminPermissionPatchSchema = z.object({
 	name: z.string().min(2).max(100)
 });
 
+export const adminProductPatchSchema = z.object({
+	sku: z.string().optional(),
+	name: z.string().min(2).max(150).optional(),
+	description: z.string().max(5000).optional(),
+	price: z.number().int().min(0).optional(),
+	categoryId: z.number().int().nullable().optional(),
+	status: z.enum(['active', 'draft']).optional()
+});
+
+export const adminCategoryCreateSchema = z.object({
+	slug: slugRule,
+	name: z.string().min(2).max(100)
+});
+
+export const adminCategoryPatchSchema = z.object({
+	name: z.string().min(2).max(100)
+});
+
 export const adminProductSchema = z.object({
 	slug: z.string().min(2),
 	sku: z.string().optional(),

@@ -18,6 +18,12 @@ import {
 	type SessionUser
 } from './auth';
 
+const slugRule = z
+	.string()
+	.min(2)
+	.max(60)
+	.regex(/^[a-z0-9._-]+$/, 'lowercase letters, numbers, dot, underscore, dash only');
+
 /** Build the public URL for an R2 key. Empty base (unset IMAGES_URL) -> '' so UI falls back to placeholders. */
 export function imageUrl(env: Bindings, r2Key: string): string {
 	const base = (env.IMAGES_URL ?? '').replace(/\/+$/, '');
@@ -192,10 +198,105 @@ app.post(
 	async (c) => {
 		const data = c.req.valid('json');
 		const db = createDb(c.env.DB);
+		if (data.categoryId !== undefined && data.categoryId !== null) {
+			const cat = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, data.categoryId)).get();
+			if (!cat) return c.json({ error: 'unknown categoryId' }, 400);
+		}
 		const res = await db.insert(products).values(data).returning();
 		return c.json(res[0], 201);
 	}
 );
+
+// Admin: update product (RBAC: products.write)
+app.patch(
+	'/api/admin/products/:slug',
+	auth,
+	need('products.write'),
+	zValidator(
+		'json',
+		z.object({
+			sku: z.string().optional(),
+			name: z.string().min(2).max(150).optional(),
+			description: z.string().max(5000).optional(),
+			price: z.number().int().min(0).optional(),
+			categoryId: z.number().int().nullable().optional(),
+			status: z.enum(['active', 'draft']).optional()
+		})
+	),
+	async (c) => {
+		const slug = c.req.param('slug');
+		const patch = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		const existing = await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get();
+		if (!existing) return c.json({ error: 'not found' }, 404);
+		if (patch.categoryId !== undefined && patch.categoryId !== null) {
+			const cat = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, patch.categoryId)).get();
+			if (!cat) return c.json({ error: 'unknown categoryId' }, 400);
+		}
+		const [updated] = await db.update(products).set(patch).where(eq(products.id, existing.id)).returning();
+		return c.json(updated);
+	}
+);
+
+// Admin: delete product + its R2 objects + image rows (RBAC: products.write)
+app.delete('/api/admin/products/:slug', auth, need('products.write'), async (c) => {
+	const slug = c.req.param('slug');
+	const db = createDb(c.env.DB);
+	const existing = await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get();
+	if (!existing) return c.json({ error: 'not found' }, 404);
+	const imgs = await db.select({ r2Key: productImages.r2Key }).from(productImages).where(eq(productImages.productId, existing.id)).all();
+	await Promise.all(imgs.map((i) => c.env.IMAGES.delete(i.r2Key)));
+	await db.delete(productImages).where(eq(productImages.productId, existing.id));
+	await db.delete(products).where(eq(products.id, existing.id));
+	return c.json({ ok: true, imagesRemoved: imgs.length });
+});
+
+// Admin: categories (RBAC: categories.write; list reuses public GET /api/categories)
+app.post(
+	'/api/admin/categories',
+	auth,
+	need('categories.write'),
+	zValidator('json', z.object({ slug: slugRule, name: z.string().min(2).max(100) })),
+	async (c) => {
+		const { slug, name } = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		if (await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).get()) {
+			return c.json({ error: 'category already exists' }, 409);
+		}
+		const [row] = await db.insert(categories).values({ slug, name }).returning();
+		return c.json(row, 201);
+	}
+);
+
+app.patch(
+	'/api/admin/categories/:slug',
+	auth,
+	need('categories.write'),
+	zValidator('json', z.object({ name: z.string().min(2).max(100) })),
+	async (c) => {
+		const slug = c.req.param('slug');
+		const db = createDb(c.env.DB);
+		const row = await db.select().from(categories).where(eq(categories.slug, slug)).get();
+		if (!row) return c.json({ error: 'not found' }, 404);
+		const [updated] = await db.update(categories).set({ name: c.req.valid('json').name }).where(eq(categories.id, row.id)).returning();
+		return c.json(updated);
+	}
+);
+
+app.delete('/api/admin/categories/:slug', auth, need('categories.write'), async (c) => {
+	const slug = c.req.param('slug');
+	const db = createDb(c.env.DB);
+	const row = await db.select().from(categories).where(eq(categories.slug, slug)).get();
+	if (!row) return c.json({ error: 'not found' }, 404);
+	const used = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(products)
+		.where(eq(products.categoryId, row.id))
+		.get();
+	if ((used?.count ?? 0) > 0) return c.json({ error: 'category is used by products', count: used?.count ?? 0 }, 409);
+	await db.delete(categories).where(eq(categories.id, row.id));
+	return c.json({ ok: true });
+});
 
 // Admin: list contact inquiries (RBAC: leads.read)
 app.get('/api/admin/leads', auth, need('leads.read'), async (c) => {
@@ -271,12 +372,6 @@ app.delete('/api/admin/images/:id', auth, need('images.write'), async (c) => {
 });
 
 // ── Admin: users / roles / permissions management ──
-
-const slugRule = z
-	.string()
-	.min(2)
-	.max(60)
-	.regex(/^[a-z0-9._-]+$/, 'lowercase letters, numbers, dot, underscore, dash only');
 
 async function rolesOf(db: ReturnType<typeof createDb>, userId: number): Promise<string[]> {
 	const rows = await db

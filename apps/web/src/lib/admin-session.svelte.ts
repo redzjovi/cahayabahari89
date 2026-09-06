@@ -46,6 +46,11 @@ class AdminSession {
 		return res;
 	}
 
+	/** Raw bearer value for hand-rolled fetch calls (e.g. multipart uploads). */
+	authHeader(): string {
+		return this.token ? `Bearer ${this.token}` : '';
+	}
+
 	/** Load /auth/me; returns false (and caller redirects) when not logged in. */
 	async refresh(): Promise<boolean> {
 		if (!this.token) {
