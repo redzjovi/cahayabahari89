@@ -34,6 +34,22 @@
 		return pageUrl({ page: String(n) });
 	}
 
+	const totalPages = $derived(Math.max(1, Math.ceil(data.total / data.limit)));
+
+	/** Page window: always 1 + last, ±1 around current, '…' for gaps. */
+	const pageItems = $derived.by(() => {
+		const total = totalPages;
+		const cur = data.page;
+		const set = new Set<number>([1, total, cur - 1, cur, cur + 1]);
+		const nums = [...set].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
+		const out: (number | '…')[] = [];
+		for (let i = 0; i < nums.length; i++) {
+			if (i > 0 && nums[i] - nums[i - 1] > 1) out.push('…');
+			out.push(nums[i]);
+		}
+		return out;
+	});
+
 	const ordered = $derived.by(() => {
 		const list = [...(data.products as any[])];
 		if ((data.sort ?? 'best') === 'best') {
@@ -50,7 +66,7 @@
 <svelte:head><title>Products — Cahaya Bahari 89</title></svelte:head>
 
 <section class="mx-auto max-w-7xl px-4 lg:px-8 pb-8 pt-12">
-	<SectionHead eyebrow={t().nav.products} title={t().katalog.title} sub={t().katalog.sub} />
+	<SectionHead eyebrow={t().nav.products} title="" />
 
 	<div class="mt-8 grid items-start gap-8 lg:grid-cols-[240px_1fr]">
 		<!-- SIDEBAR: filters (collapsible on mobile, sticky on desktop) -->
@@ -78,7 +94,7 @@
 				</fieldset>
 				<fieldset>
 					<legend class="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t().katalog.price}</legend>
-					<div class="mt-2.5 grid grid-cols-2 gap-2">
+					<div class="mt-2.5 grid gap-2">
 						<label class="grid gap-1 text-xs font-semibold text-muted">
 							{t().katalog.priceMin}
 							<input type="number" name="min" min="0" step="1000" value={data.min ?? ''} placeholder="0" class="rounded-lg border px-3 py-2 text-sm font-normal text-ink" />
@@ -130,11 +146,28 @@
 			</div>
 
 			{#if data.total > data.limit}
-				<div class="mt-10 flex items-center justify-center gap-3">
-					{#if data.page > 1}<a href={pageNumUrl(data.page - 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold hover:border-brand">{t().katalog.prev}</a>{/if}
-					<span class="px-3 py-1 text-sm text-muted">{t().katalog.page} {data.page} {t().katalog.of} {Math.ceil(data.total / data.limit)}</span>
-					{#if data.page * data.limit < data.total}<a href={pageNumUrl(data.page + 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold hover:border-brand">{t().katalog.next}</a>{/if}
-				</div>
+				<nav aria-label="Pagination" class="mt-10 flex items-center justify-center gap-2">
+					{#if data.page > 1}
+						<a href={pageNumUrl(data.page - 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold transition hover:border-brand">{t().katalog.prev}</a>
+					{:else}
+						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-5 py-2.5 text-sm font-bold opacity-40">{t().katalog.prev}</span>
+					{/if}
+					{#each pageItems as item}
+						{#if item === '…'}
+							<span class="px-1 text-sm text-muted" aria-hidden="true">…</span>
+						{:else if item === data.page}
+							<span aria-current="page" class="rounded-full border border-brand bg-brand px-4 py-2.5 text-sm font-bold text-brand-ink">{item}</span>
+						{:else}
+							<a href={pageNumUrl(item)} aria-label="{t().katalog.page} {item}" class="hidden rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-bold transition hover:border-brand sm:inline-block">{item}</a>
+						{/if}
+					{/each}
+					<span class="px-2 text-sm text-muted sm:hidden">{data.page} / {totalPages}</span>
+					{#if data.page * data.limit < data.total}
+						<a href={pageNumUrl(data.page + 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold transition hover:border-brand">{t().katalog.next}</a>
+					{:else}
+						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-5 py-2.5 text-sm font-bold opacity-40">{t().katalog.next}</span>
+					{/if}
+				</nav>
 			{/if}
 		</div>
 	</div>
