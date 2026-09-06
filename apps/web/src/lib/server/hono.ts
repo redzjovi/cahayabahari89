@@ -1,17 +1,22 @@
 import { Hono } from 'hono';
+import { createMiddleware } from 'hono/factory';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { eq, like, and, desc, sql } from 'drizzle-orm';
 import { createDb } from './db';
-import { products, categories, productImages, leads } from './db/schema';
-
-type Bindings = {
-	DB: D1Database;
-	IMAGES: R2Bucket;
-	IMAGES_URL?: string;
-	ADMIN_TOKEN?: string;
-	RESEND_API_KEY?: string;
-};
+import { products, categories, productImages, leads, users, roles, permissions, userRoles, rolePermissions } from './db/schema';
+import { hashPassword } from './auth';
+import {
+	authenticate,
+	bootstrapAdmin,
+	createSession,
+	pruneSessions,
+	requireSessionUser,
+	revokeSession,
+	revokeUserSessions,
+	type Bindings,
+	type SessionUser
+} from './auth';
 
 /** Build the public URL for an R2 key. Empty base (unset IMAGES_URL) -> '' so UI falls back to placeholders. */
 export function imageUrl(env: Bindings, r2Key: string): string {
@@ -19,7 +24,25 @@ export function imageUrl(env: Bindings, r2Key: string): string {
 	return base ? `${base}/${r2Key}` : '';
 }
 
-const app = new Hono<{ Bindings: Bindings }>();
+type Env = { Bindings: Bindings; Variables: { user: SessionUser } };
+
+const app = new Hono<Env>();
+
+/** Session auth: Bearer token -> context user (401 otherwise). */
+const auth = createMiddleware<Env>(async (c, next) => {
+	const user = await requireSessionUser(c.env, c.req.header('authorization'));
+	if (!user) return c.json({ error: 'unauthorized' }, 401);
+	c.set('user', user);
+	await next();
+});
+
+/** Permission guard: 403 unless the authed user holds the slug. */
+function need(perm: string) {
+	return createMiddleware<Env>(async (c, next) => {
+		if (!c.var.user.permissions.has(perm)) return c.json({ error: 'forbidden' }, 403);
+		await next();
+	});
+}
 
 // Health
 app.get('/api/health', (c) => c.json({ ok: true, time: new Date().toISOString() }));
@@ -149,9 +172,11 @@ app.post('/api/contact', zValidator('json', contactSchema), async (c) => {
 	return c.json({ ok: true }, 201);
 });
 
-// Admin create product (bearer simple check, replace with real auth later)
+// Admin create product (RBAC: products.write)
 app.post(
 	'/api/admin/products',
+	auth,
+	need('products.write'),
 	zValidator(
 		'json',
 		z.object({
@@ -165,10 +190,6 @@ app.post(
 		})
 	),
 	async (c) => {
-		const auth = c.req.header('authorization');
-		if (auth !== `Bearer ${c.env.ADMIN_TOKEN ?? 'dev-token'}`) {
-			return c.json({ error: 'unauthorized' }, 401);
-		}
 		const data = c.req.valid('json');
 		const db = createDb(c.env.DB);
 		const res = await db.insert(products).values(data).returning();
@@ -176,9 +197,12 @@ app.post(
 	}
 );
 
-function requireAdmin(c: { req: { header: (n: string) => string | undefined }; env: Bindings }) {
-	return c.req.header('authorization') === `Bearer ${c.env.ADMIN_TOKEN ?? 'dev-token'}`;
-}
+// Admin: list contact inquiries (RBAC: leads.read)
+app.get('/api/admin/leads', auth, need('leads.read'), async (c) => {
+	const db = createDb(c.env.DB);
+	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(100).all();
+	return c.json(rows);
+});
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
@@ -190,9 +214,8 @@ function extFor(type: string): string {
 	return 'jpg';
 }
 
-// Admin: attach one or more images to a product (multipart: slug + files[])
-app.post('/api/admin/images', async (c) => {
-	if (!requireAdmin(c)) return c.json({ error: 'unauthorized' }, 401);
+// Admin: attach one or more images to a product (multipart: slug + files[], RBAC: images.write)
+app.post('/api/admin/images', auth, need('images.write'), async (c) => {
 	const form = await c.req.formData().catch(() => null);
 	if (!form) return c.json({ error: 'expected multipart form' }, 400);
 	const slug = String(form.get('slug') ?? '');
@@ -235,9 +258,8 @@ app.post('/api/admin/images', async (c) => {
 	return c.json(created, 201);
 });
 
-// Admin: remove an image (R2 object + row)
-app.delete('/api/admin/images/:id', async (c) => {
-	if (!requireAdmin(c)) return c.json({ error: 'unauthorized' }, 401);
+// Admin: remove an image (R2 object + row, RBAC: images.write)
+app.delete('/api/admin/images/:id', auth, need('images.write'), async (c) => {
 	const id = Number(c.req.param('id'));
 	if (!Number.isInteger(id)) return c.json({ error: 'invalid id' }, 400);
 	const db = createDb(c.env.DB);
@@ -246,6 +268,312 @@ app.delete('/api/admin/images/:id', async (c) => {
 	await c.env.IMAGES.delete(row.r2Key);
 	await db.delete(productImages).where(eq(productImages.id, id));
 	return c.json({ ok: true });
+});
+
+// ── Admin: users / roles / permissions management ──
+
+const slugRule = z
+	.string()
+	.min(2)
+	.max(60)
+	.regex(/^[a-z0-9._-]+$/, 'lowercase letters, numbers, dot, underscore, dash only');
+
+async function rolesOf(db: ReturnType<typeof createDb>, userId: number): Promise<string[]> {
+	const rows = await db
+		.select({ slug: roles.slug })
+		.from(userRoles)
+		.innerJoin(roles, eq(userRoles.roleId, roles.id))
+		.where(eq(userRoles.userId, userId))
+		.all();
+	return rows.map((r) => r.slug);
+}
+
+async function resolveRoleIds(db: ReturnType<typeof createDb>, slugs: string[]) {
+	if (!slugs.length) return [];
+	const rows = await db
+		.select({ id: roles.id, slug: roles.slug })
+		.from(roles)
+		.where(sql`${roles.slug} IN (${sql.join(slugs, sql`, `)})`)
+		.all();
+	const found = new Set(rows.map((r) => r.slug));
+	const missing = slugs.filter((s) => !found.has(s));
+	if (missing.length) return { missing } as const;
+	return rows;
+}
+
+async function resolvePermissionIds(db: ReturnType<typeof createDb>, slugs: string[]) {
+	if (!slugs.length) return [];
+	const rows = await db
+		.select({ id: permissions.id, slug: permissions.slug })
+		.from(permissions)
+		.where(sql`${permissions.slug} IN (${sql.join(slugs, sql`, `)})`)
+		.all();
+	const found = new Set(rows.map((r) => r.slug));
+	const missing = slugs.filter((s) => !found.has(s));
+	if (missing.length) return { missing } as const;
+	return rows;
+}
+
+// Users
+app.get('/api/admin/users', auth, need('users.manage'), async (c) => {
+	const db = createDb(c.env.DB);
+	const all = await db
+		.select({ id: users.id, email: users.email, name: users.name, status: users.status, createdAt: users.createdAt })
+		.from(users)
+		.orderBy(users.email)
+		.all();
+	return c.json(await Promise.all(all.map(async (u) => ({ ...u, roles: await rolesOf(db, u.id) }))));
+});
+
+app.post(
+	'/api/admin/users',
+	auth,
+	need('users.manage'),
+	zValidator(
+		'json',
+		z.object({
+			email: z.string().email(),
+			name: z.string().min(2).max(100),
+			password: z.string().min(8).max(200),
+			roles: z.array(z.string()).default([])
+		})
+	),
+	async (c) => {
+		const { email, name, password, roles: roleSlugs } = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		if (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).get()) {
+			return c.json({ error: 'email already exists' }, 409);
+		}
+		const roleRows = await resolveRoleIds(db, roleSlugs);
+		if ('missing' in roleRows) return c.json({ error: `unknown roles: ${roleRows.missing.join(', ')}` }, 400);
+		const [user] = await db
+			.insert(users)
+			.values({ email, name, passwordHash: await hashPassword(password) })
+			.returning({ id: users.id, email: users.email, name: users.name, status: users.status });
+		for (const r of roleRows) await db.insert(userRoles).values({ userId: user.id, roleId: r.id });
+		return c.json({ ...user, roles: roleSlugs }, 201);
+	}
+);
+
+app.patch(
+	'/api/admin/users/:id',
+	auth,
+	need('users.manage'),
+	zValidator(
+		'json',
+		z.object({
+			name: z.string().min(2).max(100).optional(),
+			status: z.enum(['active', 'suspended']).optional(),
+			password: z.string().min(8).max(200).optional(),
+			roles: z.array(z.string()).optional()
+		})
+	),
+	async (c) => {
+		const id = Number(c.req.param('id'));
+		if (!Number.isInteger(id)) return c.json({ error: 'invalid id' }, 400);
+		const patch = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		const existing = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).get();
+		if (!existing) return c.json({ error: 'not found' }, 404);
+		if (patch.status === 'suspended' && id === c.var.user.id) {
+			return c.json({ error: 'cannot suspend your own account' }, 400);
+		}
+		if (patch.name !== undefined || patch.status !== undefined || patch.password !== undefined) {
+			await db
+				.update(users)
+				.set({
+					...(patch.name !== undefined ? { name: patch.name } : {}),
+					...(patch.status !== undefined ? { status: patch.status } : {}),
+					...(patch.password !== undefined ? { passwordHash: await hashPassword(patch.password) } : {})
+				})
+				.where(eq(users.id, id));
+			if (patch.status === 'suspended') await revokeUserSessions(db, id);
+		}
+		if (patch.roles !== undefined) {
+			const roleRows = await resolveRoleIds(db, patch.roles);
+			if ('missing' in roleRows) return c.json({ error: `unknown roles: ${roleRows.missing.join(', ')}` }, 400);
+			await db.delete(userRoles).where(eq(userRoles.userId, id));
+			for (const r of roleRows) await db.insert(userRoles).values({ userId: id, roleId: r.id });
+		}
+		const updated = await db
+			.select({ id: users.id, email: users.email, name: users.name, status: users.status })
+			.from(users)
+			.where(eq(users.id, id))
+			.get();
+		return c.json({ ...updated, roles: await rolesOf(db, id) });
+	}
+);
+
+// Roles
+app.get('/api/admin/roles', auth, need('roles.manage'), async (c) => {
+	const db = createDb(c.env.DB);
+	const all = await db.select().from(roles).orderBy(roles.slug).all();
+	return c.json(
+		await Promise.all(
+			all.map(async (r) => {
+				const perms = await db
+					.select({ slug: permissions.slug })
+					.from(rolePermissions)
+					.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+					.where(eq(rolePermissions.roleId, r.id))
+					.all();
+				const usersCount = await db
+					.select({ count: sql<number>`count(*)` })
+					.from(userRoles)
+					.where(eq(userRoles.roleId, r.id))
+					.get();
+				return { ...r, permissions: perms.map((p) => p.slug), users: usersCount?.count ?? 0 };
+			})
+		)
+	);
+});
+
+app.post(
+	'/api/admin/roles',
+	auth,
+	need('roles.manage'),
+	zValidator('json', z.object({ slug: slugRule, name: z.string().min(2).max(100), permissions: z.array(z.string()).default([]) })),
+	async (c) => {
+		const { slug, name, permissions: permSlugs } = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		if (await db.select({ id: roles.id }).from(roles).where(eq(roles.slug, slug)).get()) {
+			return c.json({ error: 'role already exists' }, 409);
+		}
+		const permRows = await resolvePermissionIds(db, permSlugs);
+		if ('missing' in permRows) return c.json({ error: `unknown permissions: ${permRows.missing.join(', ')}` }, 400);
+		const [role] = await db.insert(roles).values({ slug, name }).returning();
+		for (const p of permRows) await db.insert(rolePermissions).values({ roleId: role.id, permissionId: p.id });
+		return c.json({ ...role, permissions: permSlugs }, 201);
+	}
+);
+
+app.patch(
+	'/api/admin/roles/:slug',
+	auth,
+	need('roles.manage'),
+	zValidator('json', z.object({ name: z.string().min(2).max(100).optional(), permissions: z.array(z.string()).optional() })),
+	async (c) => {
+		const slug = c.req.param('slug');
+		const patch = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		const role = await db.select().from(roles).where(eq(roles.slug, slug)).get();
+		if (!role) return c.json({ error: 'not found' }, 404);
+		if (patch.name !== undefined) await db.update(roles).set({ name: patch.name }).where(eq(roles.id, role.id));
+		if (patch.permissions !== undefined) {
+			const permRows = await resolvePermissionIds(db, patch.permissions);
+			if ('missing' in permRows) return c.json({ error: `unknown permissions: ${permRows.missing.join(', ')}` }, 400);
+			await db.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
+			for (const p of permRows) await db.insert(rolePermissions).values({ roleId: role.id, permissionId: p.id });
+		}
+		const perms = await db
+			.select({ slug: permissions.slug })
+			.from(rolePermissions)
+			.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+			.where(eq(rolePermissions.roleId, role.id))
+			.all();
+		const updated = await db.select().from(roles).where(eq(roles.id, role.id)).get();
+		return c.json({ ...updated, permissions: perms.map((p) => p.slug) });
+	}
+);
+
+app.delete('/api/admin/roles/:slug', auth, need('roles.manage'), async (c) => {
+	const slug = c.req.param('slug');
+	const db = createDb(c.env.DB);
+	const role = await db.select().from(roles).where(eq(roles.slug, slug)).get();
+	if (!role) return c.json({ error: 'not found' }, 404);
+	const assigned = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(userRoles)
+		.where(eq(userRoles.roleId, role.id))
+		.get();
+	if ((assigned?.count ?? 0) > 0) return c.json({ error: 'role is assigned to users' }, 409);
+	await db.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
+	await db.delete(roles).where(eq(roles.id, role.id));
+	return c.json({ ok: true });
+});
+
+// Permissions (full CRUD; slugs immutable once created — code enforces them)
+app.get('/api/admin/permissions', auth, need('roles.manage'), async (c) => {
+	const db = createDb(c.env.DB);
+	return c.json(await db.select().from(permissions).orderBy(permissions.slug).all());
+});
+
+app.post(
+	'/api/admin/permissions',
+	auth,
+	need('roles.manage'),
+	zValidator('json', z.object({ slug: slugRule, name: z.string().min(2).max(100) })),
+	async (c) => {
+		const { slug, name } = c.req.valid('json');
+		const db = createDb(c.env.DB);
+		if (await db.select({ id: permissions.id }).from(permissions).where(eq(permissions.slug, slug)).get()) {
+			return c.json({ error: 'permission already exists' }, 409);
+		}
+		const [row] = await db.insert(permissions).values({ slug, name }).returning();
+		return c.json(row, 201);
+	}
+);
+
+app.patch(
+	'/api/admin/permissions/:slug',
+	auth,
+	need('roles.manage'),
+	zValidator('json', z.object({ name: z.string().min(2).max(100) })),
+	async (c) => {
+		const slug = c.req.param('slug');
+		const db = createDb(c.env.DB);
+		const row = await db.select().from(permissions).where(eq(permissions.slug, slug)).get();
+		if (!row) return c.json({ error: 'not found' }, 404);
+		const [updated] = await db.update(permissions).set({ name: c.req.valid('json').name }).where(eq(permissions.id, row.id)).returning();
+		return c.json(updated);
+	}
+);
+
+app.delete('/api/admin/permissions/:slug', auth, need('roles.manage'), async (c) => {
+	const slug = c.req.param('slug');
+	const db = createDb(c.env.DB);
+	const row = await db.select().from(permissions).where(eq(permissions.slug, slug)).get();
+	if (!row) return c.json({ error: 'not found' }, 404);
+	const assigned = await db
+		.select({ count: sql<number>`count(*)` })
+		.from(rolePermissions)
+		.where(eq(rolePermissions.permissionId, row.id))
+		.get();
+	if ((assigned?.count ?? 0) > 0) return c.json({ error: 'permission is assigned to roles' }, 409);
+	await db.delete(permissions).where(eq(permissions.id, row.id));
+	return c.json({ ok: true });
+});
+
+// ── Auth: sessions (RBAC) ──
+
+app.post(
+	'/api/auth/login',
+	zValidator('json', z.object({ email: z.string().email(), password: z.string().min(1) })),
+	async (c) => {
+		await bootstrapAdmin(c.env);
+		const db = createDb(c.env.DB);
+		await pruneSessions(db);
+		const { email, password } = c.req.valid('json');
+		const user = await authenticate(db, email, password);
+		if (!user) return c.json({ error: 'invalid credentials' }, 401);
+		const token = await createSession(db, user.id);
+		const full = await requireSessionUser(c.env, `Bearer ${token}`);
+		return c.json({
+			token,
+			user: full ? { ...full, permissions: [...full.permissions] } : { ...user, roles: [], permissions: [] }
+		});
+	}
+);
+
+app.post('/api/auth/logout', async (c) => {
+	const header = c.req.header('authorization');
+	if (header?.startsWith('Bearer ')) await revokeSession(createDb(c.env.DB), header.slice(7));
+	return c.json({ ok: true });
+});
+
+app.get('/api/auth/me', auth, async (c) => {
+	const user = c.var.user;
+	return c.json({ ...user, permissions: [...user.permissions] });
 });
 
 export default app;

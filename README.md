@@ -29,10 +29,22 @@ packages/shared/           # zod schemas shared FE/BE (productsQuery, contact, a
 
 ```bash
 pnpm install
-pnpm --filter web dev            # vite dev (Hono reachable at /api/* via hooks)
+pnpm dev                         # single server: vite HMR + real local D1/R2 via platformProxy
 pnpm --filter web check          # svelte-check (0 errors)
 pnpm --filter web build          # production build (adapter-cloudflare)
 ```
+
+## Local dev (merged into one)
+
+`pnpm dev` (`vite dev` + `platformProxy: { persist: true }` in `svelte.config.js`)
+serves UI hot-reload **and** the Hono API against the same local backend as
+`wrangler dev` (shared `.wrangler/state`, `.dev.vars` secrets for both).
+Use `wrangler dev` (after `pnpm build`) only for pre-deploy fidelity checks:
+real workerd runtime, `_worker.js` bundling, redirects/asset behavior.
+
+Gotcha: secret-*only* bindings must NOT have empty placeholders in
+`wrangler.jsonc` `vars` — empty values shadow `.dev.vars` locally and silently
+disable features (hit us with `ADMIN_EMAIL`/`ADMIN_PASSWORD` bootstrap).
 
 First-time setup already done: `pnpm approve-builds --all` (esbuild/workerd postinstall).
 
@@ -45,17 +57,46 @@ First-time setup already done: `pnpm approve-builds --all` (esbuild/workerd post
 | GET | `/api/products?q=&cat=&page=&limit=` | showcase list, paginated (default 12, max 50) |
 | GET | `/api/products/:slug` | detail + images + category |
 | POST | `/api/contact` `{name,email,company?,volume?,message}` | stores lead in D1 `leads` |
-| POST | `/api/admin/products` | `Authorization: Bearer <ADMIN_TOKEN>`, creates product |
-| POST | `/api/admin/images` | multipart `slug` + `files[]` (jpeg/png/webp/avif, ≤5 MB each), attaches images |
-| DELETE | `/api/admin/images/:id` | removes R2 object + row |
+| POST | `/api/auth/login` `{email,password}` | → `{token, user}` session (7-day TTL) |
+| POST | `/api/auth/logout` | revokes session token |
+| GET | `/api/auth/me` | session user + roles + permissions |
+| POST | `/api/admin/products` | Bearer session, needs `products.write` |
+| GET | `/api/admin/leads` | Bearer session, needs `leads.read` |
+| POST | `/api/admin/images` | multipart `slug` + `files[]` (jpeg/png/webp/avif, ≤5 MB each), needs `images.write` |
+| DELETE | `/api/admin/images/:id` | removes R2 object + row, needs `images.write` |
 
-Seed example (local dev server running):
+## RBAC (users, roles, permissions)
+
+Tables: `users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `sessions`.
+Passwords: PBKDF2-SHA256 via WebCrypto. Sessions: opaque Bearer tokens (SHA-256 stored, 7-day expiry).
+Seeded roles — `admin` (all 8 permissions), `staff` (products.*/categories.*/images.write/leads.read),
+`viewer` (products.read, categories.read).
+
+First admin (bootstrap — runs automatically when `users` is empty):
 
 ```bash
-curl -X POST localhost:5173/api/admin/products \
+# local: apps/web/.dev.vars (gitignored) — prod: wrangler secret put
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="choose-a-strong-password"
+```
+
+Admin UI (bilingual, token-gated, no login = redirect to login):
+`/en|/id/admin/login` → sign in → `/admin/users` (create, suspend/reactivate,
+role assignment, password reset) and `/admin/roles` (create/rename/delete with
+assignment guard, permission matrix, permission CRUD). Client token lives in
+`localStorage`; API enforced server-side regardless.
+
+Then (local dev server running — multipart needs an `Origin` header via curl):
+
+```bash
+TOKEN=$(curl -s -X POST localhost:8787/api/auth/login \
   -H 'content-type: application/json' \
-  -H 'authorization: Bearer dev-token' \
-  -d '{"slug":"jangkar-5kg","name":"Jangkar 5kg","price":250000,"status":"active"}'
+  -d '{"email":"admin@example.com","password":"choose-a-strong-password"}' | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
+curl localhost:8787/api/auth/me -H "authorization: Bearer $TOKEN"
+curl -X POST localhost:8787/api/admin/products \
+  -H 'content-type: application/json' \
+  -H "authorization: Bearer $TOKEN" \
+  -d '{"slug":"salmon-test","name":"Salmon Test","price":100000,"status":"draft"}'
 ```
 
 ## Product images (R2 + custom domain)
@@ -67,17 +108,19 @@ Detail pages show a main image + thumbnail strip from `product_images` rows. Eac
    Custom Domain (e.g. `https://images.yourdomain.com`) + allow public access.
 2. Set the secret (prod) or `.dev.vars` (local): `IMAGES_URL=https://images.yourdomain.com`
    (`pnpm --filter web exec wrangler secret put IMAGES_URL`).
-3. Upload (local dev server or prod URL, Bearer token):
+3. Upload (local dev server or prod URL, session token — curl multipart needs `Origin`):
 
 ```bash
 curl -X POST localhost:8787/api/admin/images \
-  -H 'authorization: Bearer dev-token' \
+  -H 'Origin: http://localhost:8787' \
+  -H "authorization: Bearer $TOKEN" \
   -F slug=fillet-salmon-premium \
   -F 'files[]=@./salmon-1.jpg' \
   -F 'files[]=@./salmon-2.jpg'
 # → [{id, r2Key, url, ...}] — gallery shows them in `sort` order
 curl -X DELETE localhost:8787/api/admin/images/3 \
-  -H 'authorization: Bearer dev-token'
+  -H 'Origin: http://localhost:8787' \
+  -H "authorization: Bearer $TOKEN"
 ```
 
 ## D1 / R2 (Cloudflare)
@@ -98,7 +141,8 @@ Deploy (single Worker via Pages/Workers + `adapter-cloudflare` output `.svelte-k
 ```bash
 pnpm --filter web build
 pnpm --filter web exec wrangler deploy
-pnpm exec wrangler secret put ADMIN_TOKEN   # (from apps/web) real token, replaces dev-token
+pnpm exec wrangler secret put ADMIN_EMAIL       # (from apps/web) bootstrap admin email
+pnpm exec wrangler secret put ADMIN_PASSWORD    # (from apps/web) bootstrap admin password
 ```
 
 Costs (2026): Cloudflare Pages Free (500 builds, unlimited bandwidth) + Workers Free

@@ -11,6 +11,11 @@ const config = {
 			routes: {
 				include: ['/*'],
 				exclude: ['<all>']
+			},
+			// Emulate platform.env (D1/R2/vars from wrangler.jsonc) in `vite dev`,
+			// sharing .wrangler/state with `wrangler dev` (single local backend).
+			platformProxy: {
+				persist: true
 			}
 		})
 	}

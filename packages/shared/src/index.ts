@@ -17,6 +17,51 @@ export const contactSchema = z.object({
 	message: z.string().min(10).max(2000)
 });
 
+export const loginSchema = z.object({
+	email: z.string().email(),
+	password: z.string().min(1)
+});
+
+const slugRule = z
+	.string()
+	.min(2)
+	.max(60)
+	.regex(/^[a-z0-9._-]+$/, 'lowercase letters, numbers, dot, underscore, dash only');
+
+export const adminUserCreateSchema = z.object({
+	email: z.string().email(),
+	name: z.string().min(2).max(100),
+	password: z.string().min(8).max(200),
+	roles: z.array(z.string()).default([])
+});
+
+export const adminUserPatchSchema = z.object({
+	name: z.string().min(2).max(100).optional(),
+	status: z.enum(['active', 'suspended']).optional(),
+	password: z.string().min(8).max(200).optional(),
+	roles: z.array(z.string()).optional()
+});
+
+export const adminRoleCreateSchema = z.object({
+	slug: slugRule,
+	name: z.string().min(2).max(100),
+	permissions: z.array(z.string()).default([])
+});
+
+export const adminRolePatchSchema = z.object({
+	name: z.string().min(2).max(100).optional(),
+	permissions: z.array(z.string()).optional()
+});
+
+export const adminPermissionCreateSchema = z.object({
+	slug: slugRule,
+	name: z.string().min(2).max(100)
+});
+
+export const adminPermissionPatchSchema = z.object({
+	name: z.string().min(2).max(100)
+});
+
 export const adminProductSchema = z.object({
 	slug: z.string().min(2),
 	sku: z.string().optional(),

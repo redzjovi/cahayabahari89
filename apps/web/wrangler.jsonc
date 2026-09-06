@@ -22,7 +22,6 @@
 		}
 	],
 	"vars": {
-		"ADMIN_TOKEN": "dev-token",
 		"IMAGES_URL": ""
 	}
 }

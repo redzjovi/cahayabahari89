@@ -8,8 +8,8 @@ import type { Locale } from './locale.svelte';
 
 // internal base -> localized base, per locale
 const TABLE: Record<Locale, Record<string, string>> = {
-	en: { '/': '/en', '/products': '/en/products', '/contact': '/en/contact' },
-	id: { '/': '/id', '/products': '/id/produk', '/contact': '/id/kontak' }
+	en: { '/': '/en', '/products': '/en/products', '/contact': '/en/contact', '/admin': '/en/admin' },
+	id: { '/': '/id', '/products': '/id/produk', '/contact': '/id/kontak', '/admin': '/id/admin' }
 };
 
 // localized first slug -> internal base ('': locale root -> home)
@@ -18,7 +18,8 @@ const REVERSE: Record<string, string> = {
 	products: '/products',
 	produk: '/products',
 	contact: '/contact',
-	kontak: '/contact'
+	kontak: '/contact',
+	admin: '/admin'
 };
 
 export function isLocale(seg: string): seg is Locale {

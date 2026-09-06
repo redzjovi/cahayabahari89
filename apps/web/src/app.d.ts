@@ -11,7 +11,8 @@ declare global {
 				DB: D1Database;
 				IMAGES: R2Bucket;
 				IMAGES_URL?: string;
-				ADMIN_TOKEN?: string;
+				ADMIN_EMAIL?: string;
+				ADMIN_PASSWORD?: string;
 				RESEND_API_KEY?: string;
 			};
 			cf?: CfProperties;

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, primaryKey } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const categories = sqliteTable(
@@ -57,3 +57,68 @@ export const leads = sqliteTable('leads', {
 	message: text('message').notNull(),
 	createdAt: text('created_at').default(sql`(datetime('now'))`)
 });
+
+// ── RBAC ──
+
+export const users = sqliteTable(
+	'users',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		email: text('email').notNull().unique(),
+		name: text('name').notNull(),
+		passwordHash: text('password_hash').notNull(), // "saltHex$hashHex" (PBKDF2-SHA256)
+		status: text('status').notNull().default('active'), // active | suspended
+		createdAt: text('created_at').default(sql`(datetime('now'))`)
+	},
+	(table) => [index('users_email_idx').on(table.email)]
+);
+
+export const roles = sqliteTable('roles', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(),
+	name: text('name').notNull()
+});
+
+export const permissions = sqliteTable('permissions', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(),
+	name: text('name').notNull()
+});
+
+export const userRoles = sqliteTable(
+	'user_roles',
+	{
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		roleId: integer('role_id')
+			.notNull()
+			.references(() => roles.id, { onDelete: 'cascade' })
+	},
+	(table) => [primaryKey({ columns: [table.userId, table.roleId] })]
+);
+
+export const rolePermissions = sqliteTable(
+	'role_permissions',
+	{
+		roleId: integer('role_id')
+			.notNull()
+			.references(() => roles.id, { onDelete: 'cascade' }),
+		permissionId: integer('permission_id')
+			.notNull()
+			.references(() => permissions.id, { onDelete: 'cascade' })
+	},
+	(table) => [primaryKey({ columns: [table.roleId, table.permissionId] })]
+);
+
+export const sessions = sqliteTable(
+	'sessions',
+	{
+		tokenHash: text('token_hash').primaryKey(), // SHA-256 hex of the opaque token
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		expiresAt: text('expires_at').notNull() // datetime('now')-comparable string
+	},
+	(table) => [index('sessions_user_idx').on(table.userId)]
+);
