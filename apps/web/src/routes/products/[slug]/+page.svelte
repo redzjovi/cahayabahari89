@@ -25,10 +25,10 @@
 	<meta property="og:description" content={p.description ?? p.name} />
 </svelte:head>
 
-<section class="content-wrap pb-8 pt-12">
+<section class="content-wrap pb-6 pt-8">
 	<a href={localize('/products', locale.current)} class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
 
-	<div class="mt-6 grid items-start gap-10 lg:grid-cols-2">
+	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
 		<div>
 			{#if p.images?.length}
 				<PhotoPlaceholder label={p.images[0].alt ?? p.name} aspect="aspect-[4/3]" />
@@ -52,27 +52,27 @@
 			<p class="mt-2 font-display text-3xl font-bold text-brand">Rp {idr(p.price)}<span class="text-base font-medium text-muted">{t().katalog.per}</span></p>
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 
-			<div class="mt-6 flex flex-wrap gap-3">
-				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">WhatsApp Order</a>
-				<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().detail.ask}</a>
+			<div class="mt-5 flex flex-wrap gap-3">
+				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">WhatsApp Order</a>
+				<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-4 py-2 font-bold transition hover:border-brand hover:text-brand">{t().detail.ask}</a>
 			</div>
 
-			<div class="mt-8 overflow-hidden rounded-card border border-line">
-				<h2 class="border-b border-line bg-band px-5 py-3 text-sm font-bold uppercase tracking-[0.12em]">{t().detail.specs}</h2>
+			<div class="mt-6 overflow-hidden rounded-card border border-line">
+				<h2 class="border-b border-line bg-band px-4 py-2.5 text-sm font-bold uppercase tracking-[0.12em]">{t().detail.specs}</h2>
 				<dl class="divide-y divide-line text-sm">
-					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">SKU</dt><dd class="font-semibold">{p.sku ?? '-'}</dd></div>
-					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">{t().detail.category}</dt><dd class="font-semibold">{p.category?.name ?? '-'}</dd></div>
-					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">Storage</dt><dd class="font-semibold">0–4°C</dd></div>
-					<div class="flex justify-between gap-4 px-5 py-3"><dt class="text-muted">Origin</dt><dd class="font-semibold">Certified waters</dd></div>
+					<div class="flex justify-between gap-4 px-4 py-2.5"><dt class="text-muted">SKU</dt><dd class="font-semibold">{p.sku ?? '-'}</dd></div>
+					<div class="flex justify-between gap-4 px-4 py-2.5"><dt class="text-muted">{t().detail.category}</dt><dd class="font-semibold">{p.category?.name ?? '-'}</dd></div>
+					<div class="flex justify-between gap-4 px-4 py-2.5"><dt class="text-muted">Storage</dt><dd class="font-semibold">0–4°C</dd></div>
+					<div class="flex justify-between gap-4 px-4 py-2.5"><dt class="text-muted">Origin</dt><dd class="font-semibold">Certified waters</dd></div>
 				</dl>
 			</div>
 		</div>
 	</div>
 
 	{#if (data.related as any[]).length}
-		<div class="mt-16">
+		<div class="mt-10">
 			<h2 class="font-display text-2xl font-bold">{t().detail.related}</h2>
-			<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+			<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.related as r}
 					<ProductCard product={r} />
 				{/each}

@@ -66,16 +66,16 @@
 
 <svelte:head><title>Products — Cahaya Bahari 89</title></svelte:head>
 
-<section class="content-wrap pb-8 pt-12">
+<section class="content-wrap pb-6 pt-8">
 	<SectionHead eyebrow={t().nav.products} title="" />
 
-	<div class="mt-8 grid items-start gap-8 lg:grid-cols-[240px_1fr]">
+	<div class="mt-6 grid items-start gap-6 lg:grid-cols-[240px_1fr]">
 		<!-- SIDEBAR: filters (collapsible on mobile, sticky on desktop) -->
 		<details open class="rounded-card border border-line bg-surface shadow-card lg:sticky lg:top-24">
-			<summary class="cursor-pointer list-none px-5 py-4 text-sm font-bold lg:hidden">
+			<summary class="cursor-pointer list-none px-4 py-3 text-sm font-bold lg:hidden">
 				{t().katalog.filters} ▾
 			</summary>
-			<form method="GET" action={localize('/products', locale.current)} class="grid gap-5 border-t border-line px-5 py-5">
+			<form method="GET" action={localize('/products', locale.current)} class="grid gap-4 border-t border-line px-4 py-4">
 				<input type="hidden" name="sort" value={data.sort ?? 'best'} />
 				<input type="hidden" name="q" value={data.q ?? ''} />
 				<fieldset>
@@ -98,17 +98,17 @@
 					<div class="mt-2.5 grid gap-2">
 						<label class="grid gap-1 text-xs font-semibold text-muted">
 							{t().katalog.priceMin}
-							<input type="number" name="min" min="0" step="1000" value={data.min ?? ''} placeholder="0" class="rounded-lg border px-3 py-2 text-sm font-normal text-ink" />
+							<input type="number" name="min" min="0" step="1000" value={data.min ?? ''} placeholder="0" class="rounded-lg border px-3 py-1.5 text-sm font-normal text-ink" />
 						</label>
 						<label class="grid gap-1 text-xs font-semibold text-muted">
 							{t().katalog.priceMax}
-							<input type="number" name="max" min="0" step="1000" value={data.max ?? ''} placeholder="500000" class="rounded-lg border px-3 py-2 text-sm font-normal text-ink" />
+							<input type="number" name="max" min="0" step="1000" value={data.max ?? ''} placeholder="500000" class="rounded-lg border px-3 py-1.5 text-sm font-normal text-ink" />
 						</label>
 					</div>
 				</fieldset>
 				<div class="flex gap-2">
-					<button type="submit" class="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-bold text-brand-ink transition hover:brightness-110">{t().katalog.apply}</button>
-					<a href={pageUrl({ q: undefined, cat: undefined, min: undefined, max: undefined, sort: 'best' })} class="rounded-full border border-line px-4 py-2.5 text-sm font-bold transition hover:border-brand">{t().katalog.reset}</a>
+					<button type="submit" class="flex-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:brightness-110">{t().katalog.apply}</button>
+					<a href={pageUrl({ q: undefined, cat: undefined, min: undefined, max: undefined, sort: 'best' })} class="rounded-full border border-line px-4 py-2 text-sm font-bold transition hover:border-brand">{t().katalog.reset}</a>
 				</div>
 			</form>
 		</details>
@@ -119,10 +119,10 @@
 				<input type="hidden" name="cat" value={data.cat ?? ''} />
 				<input type="hidden" name="min" value={data.min ?? ''} />
 				<input type="hidden" name="max" value={data.max ?? ''} />
-				<input name="q" value={data.q ?? ''} placeholder={t().katalog.search} class="min-w-0 flex-1 rounded-full border px-5 py-2.5 text-sm" />
+				<input name="q" value={data.q ?? ''} placeholder={t().katalog.search} class="min-w-0 flex-1 rounded-full border px-4 py-2 text-sm" />
 				<label class="flex items-center gap-2 text-sm font-semibold text-muted">
 					{t().katalog.sortBy}
-					<select name="sort" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-bold text-ink">
+					<select name="sort" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
 						{#each sortOpts as o}
 							<option value={o.v} selected={(data.sort ?? 'best') === o.v}>{o.label()}</option>
 						{/each}
@@ -130,43 +130,43 @@
 				</label>
 			</form>
 
-			<p class="mt-4 text-sm text-muted">{data.total} products</p>
+			<p class="mt-3 text-sm text-muted">{data.total} products</p>
 
 			{#if data.error}
-				<p class="mt-4 rounded-card bg-amber-500/10 p-4 text-amber-600">{data.error}</p>
+				<p class="mt-3 rounded-card bg-amber-500/10 p-3 text-amber-600">{data.error}</p>
 			{/if}
 
-			<div class="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+			<div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
 				{#each ordered as p, i}
 					<ProductCard product={p} badge={(data.sort ?? 'best') === 'best' && data.page === 1 && !data.q && !data.cat && !data.min && !data.max && CURATED.includes(p.slug)} />
 				{:else}
-					<p class="col-span-3 rounded-card border border-dashed border-line p-8 text-center text-muted">
+					<p class="col-span-3 rounded-card border border-dashed border-line p-6 text-center text-muted">
 						{t().katalog.empty}<br /><span class="text-sm">{t().katalog.seedHint}</span>
 					</p>
 				{/each}
 			</div>
 
 			{#if data.total > data.limit}
-				<nav aria-label="Pagination" class="mt-10 flex items-center justify-center gap-2">
+				<nav aria-label="Pagination" class="mt-8 flex items-center justify-center gap-2">
 					{#if data.page > 1}
-						<a href={pageNumUrl(data.page - 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold transition hover:border-brand">{t().katalog.prev}</a>
+						<a href={pageNumUrl(data.page - 1)} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold transition hover:border-brand">{t().katalog.prev}</a>
 					{:else}
-						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-5 py-2.5 text-sm font-bold opacity-40">{t().katalog.prev}</span>
+						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-4 py-2 text-sm font-bold opacity-40">{t().katalog.prev}</span>
 					{/if}
 					{#each pageItems as item}
 						{#if item === '…'}
 							<span class="px-1 text-sm text-muted" aria-hidden="true">…</span>
 						{:else if item === data.page}
-							<span aria-current="page" class="rounded-full border border-brand bg-brand px-4 py-2.5 text-sm font-bold text-brand-ink">{item}</span>
+							<span aria-current="page" class="rounded-full border border-brand bg-brand px-3 py-2 text-sm font-bold text-brand-ink">{item}</span>
 						{:else}
-							<a href={pageNumUrl(item)} aria-label="{t().katalog.page} {item}" class="hidden rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-bold transition hover:border-brand sm:inline-block">{item}</a>
+							<a href={pageNumUrl(item)} aria-label="{t().katalog.page} {item}" class="hidden rounded-full border border-line bg-surface px-3 py-2 text-sm font-bold transition hover:border-brand sm:inline-block">{item}</a>
 						{/if}
 					{/each}
 					<span class="px-2 text-sm text-muted sm:hidden">{data.page} / {totalPages}</span>
 					{#if data.page * data.limit < data.total}
-						<a href={pageNumUrl(data.page + 1)} class="rounded-full border border-line bg-surface px-5 py-2.5 text-sm font-bold transition hover:border-brand">{t().katalog.next}</a>
+						<a href={pageNumUrl(data.page + 1)} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold transition hover:border-brand">{t().katalog.next}</a>
 					{:else}
-						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-5 py-2.5 text-sm font-bold opacity-40">{t().katalog.next}</span>
+						<span aria-disabled="true" class="pointer-events-none rounded-full border border-line px-4 py-2 text-sm font-bold opacity-40">{t().katalog.next}</span>
 					{/if}
 				</nav>
 			{/if}

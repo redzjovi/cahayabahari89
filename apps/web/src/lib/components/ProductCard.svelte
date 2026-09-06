@@ -18,7 +18,7 @@
 			<span class="absolute left-3 top-3 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-ink">{t().katalog.bestSeller}</span>
 		{/if}
 	</div>
-	<div class="flex flex-1 flex-col gap-1 p-5">
+	<div class="flex flex-1 flex-col gap-1 p-4">
 		<h3 class="font-display text-lg font-bold leading-snug group-hover:text-brand">{product.name}</h3>
 		<p class="text-lg font-extrabold text-accent-strong">Rp {idr(product.price)}<span class="text-xs font-medium text-muted">{t().katalog.per}</span></p>
 		{#if product.description}

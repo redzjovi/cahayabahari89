@@ -65,8 +65,8 @@
 	{#if menuOpen}
 		<div class="border-t border-line px-4 py-3 md:hidden">
 			<div class="flex flex-col gap-1 text-sm font-semibold">
-				<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.products}</a>
-				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.contact}</a>
+				<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.products}</a>
+				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
 				<LangToggle />
@@ -81,7 +81,7 @@
 </main>
 
 <footer class="mt-16 bg-brand text-brand-ink">
-	<div class="content-wrap grid gap-10 py-12 sm:grid-cols-2">
+	<div class="content-wrap grid gap-8 py-8 sm:grid-cols-2">
 		<div>
 			<span class="flex items-center gap-2 text-lg font-extrabold">
 				<FishMark cls="h-6 w-6 text-accent" />
