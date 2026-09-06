@@ -511,6 +511,7 @@ app.get('/api/admin/roles', auth, need('roles.manage'), async (c) => {
 					.from(rolePermissions)
 					.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
 					.where(eq(rolePermissions.roleId, r.id))
+					.orderBy(permissions.slug)
 					.all();
 				const usersCount = await db
 					.select({ count: sql<number>`count(*)` })
@@ -565,6 +566,7 @@ app.patch(
 			.from(rolePermissions)
 			.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
 			.where(eq(rolePermissions.roleId, role.id))
+			.orderBy(permissions.slug)
 			.all();
 		const updated = await db.select().from(roles).where(eq(roles.id, role.id)).get();
 		return c.json({ ...updated, permissions: perms.map((p) => p.slug) });
