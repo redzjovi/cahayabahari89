@@ -13,7 +13,8 @@ apps/web/                  # SvelteKit (adapter-cloudflare) + embedded Hono
                            #   /api/products, /api/products/:slug,
                            #   POST /api/contact, POST /api/admin/products
   src/lib/server/db/       # Drizzle schema (categories, products, product_images, leads)
-  src/routes/              # /, /about, /services, /contact, /katalog, /katalog/[slug]
+  src/routes/              # /, /contact (merged About story+milestones+values), /katalog, /katalog/[slug]
+                           # (nav: Products + Contact only; /about and /services removed)
   wrangler.jsonc           # D1 binding DB, R2 binding IMAGES
   drizzle/                 # generated SQL migrations for D1
 packages/shared/           # zod schemas shared FE/BE (productsQuery, contact, adminProduct)

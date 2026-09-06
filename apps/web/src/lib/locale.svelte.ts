@@ -39,6 +39,7 @@ const en = {
 		products: 'Products',
 		company: 'Company',
 		contact: 'Export Desk',
+		follow: 'Follow Us',
 		rights: 'All rights reserved.'
 	},
 	about: {
@@ -82,7 +83,19 @@ const en = {
 		prev: 'Prev',
 		next: 'Next',
 		per: '/kg',
-		bestSeller: 'Best Seller'
+		bestSeller: 'Best Seller',
+		filters: 'Filters',
+		category: 'Category',
+		price: 'Price (Rp)',
+		priceMin: 'Min',
+		priceMax: 'Max',
+		apply: 'Apply',
+		reset: 'Reset',
+		sortBy: 'Sort by',
+		sortBest: 'Best selling',
+		sortNameAsc: 'Alphabet (A–Z)',
+		sortPriceAsc: 'Price: low to high',
+		sortPriceDesc: 'Price: high to low'
 	},
 	detail: {
 		back: 'Back to catalog',
@@ -147,6 +160,7 @@ const id: Dict = {
 		products: 'Produk',
 		company: 'Perusahaan',
 		contact: 'Meja Ekspor',
+		follow: 'Ikuti Kami',
 		rights: 'Hak cipta dilindungi.'
 	},
 	about: {
@@ -190,7 +204,19 @@ const id: Dict = {
 		prev: 'Prev',
 		next: 'Next',
 		per: '/kg',
-		bestSeller: 'Terlaris'
+		bestSeller: 'Terlaris',
+		filters: 'Filter',
+		category: 'Kategori',
+		price: 'Harga (Rp)',
+		priceMin: 'Min',
+		priceMax: 'Maks',
+		apply: 'Terapkan',
+		reset: 'Atur ulang',
+		sortBy: 'Urutkan',
+		sortBest: 'Terlaris',
+		sortNameAsc: 'Abjad (A–Z)',
+		sortPriceAsc: 'Harga: rendah ke tinggi',
+		sortPriceDesc: 'Harga: tinggi ke rendah'
 	},
 	detail: {
 		back: 'Kembali ke katalog',

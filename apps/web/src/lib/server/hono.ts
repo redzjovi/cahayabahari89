@@ -25,15 +25,23 @@ app.get('/api/categories', async (c) => {
 });
 
 // Products list with filter/pagination (showcase)
+const sortSchema = z.enum(['best', 'name_asc', 'price_asc', 'price_desc']).default('best');
+
 const productsQuerySchema = z.object({
 	q: z.string().optional(),
 	cat: z.string().optional(),
+	minPrice: z.coerce.number().int().min(0).optional(),
+	maxPrice: z.coerce.number().int().min(0).optional(),
+	sort: sortSchema,
 	page: z.coerce.number().min(1).default(1),
 	limit: z.coerce.number().min(1).max(50).default(12)
 });
 
 app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => {
-	const { q, cat, page, limit } = c.req.valid('query');
+	const { q, cat, minPrice, maxPrice, sort, page, limit } = c.req.valid('query');
+	if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+		return c.json({ error: 'minPrice must not exceed maxPrice' }, 400);
+	}
 	const db = createDb(c.env.DB);
 	const offset = (page - 1) * limit;
 
@@ -49,6 +57,8 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 		if (catRow?.id) where.push(eq(products.categoryId, catRow.id));
 		else return c.json({ products: [], total: 0, page, limit });
 	}
+	if (minPrice !== undefined) where.push(sql`${products.price} >= ${minPrice}`);
+	if (maxPrice !== undefined) where.push(sql`${products.price} <= ${maxPrice}`);
 	where.push(eq(products.status, 'active'));
 
 	// count
@@ -59,11 +69,22 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 		.get();
 	const total = countRes?.count ?? 0;
 
+	// Prototype ordering: 'best' == newest-first server-side; the curated
+	// pinning happens in the SvelteKit layer (see CURATED in katalog/+page.svelte).
+	const orderBy =
+		sort === 'name_asc'
+			? products.name
+			: sort === 'price_asc'
+				? products.price
+				: sort === 'price_desc'
+					? desc(products.price)
+					: desc(products.createdAt);
+
 	const rows = await db
 		.select()
 		.from(products)
 		.where(where.length ? and(...where) : undefined)
-		.orderBy(desc(products.createdAt))
+		.orderBy(orderBy)
 		.limit(limit)
 		.offset(offset)
 		.all();

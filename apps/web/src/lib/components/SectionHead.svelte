@@ -17,7 +17,9 @@
 	{#if eyebrow}
 		<span class="text-xs font-bold uppercase tracking-[0.18em] text-brand">{eyebrow}</span>
 	{/if}
-	<h2 class="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">{title}</h2>
+	{#if title}
+		<h2 class="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">{title}</h2>
+	{/if}
 	{#if sub}
 		<p class="text-muted">{sub}</p>
 	{/if}

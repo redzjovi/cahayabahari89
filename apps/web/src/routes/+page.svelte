@@ -15,9 +15,9 @@
 	<meta name="description" content="Cahaya Bahari 89 — premium salmon and fresh fish supplier. Browse the catalog, check prices, contact sales." />
 </svelte:head>
 
-<!-- HERO -->
-<section class="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 lg:grid-cols-2 lg:pt-20">
-	<div>
+<!-- HERO: text in 7xl measure, image stretched to right viewport edge -->
+<section class="grid items-center gap-10 px-4 pb-16 pt-12 lg:grid-cols-2 lg:gap-12 lg:px-0 lg:pb-24 lg:pt-20">
+	<div class="lg:pl-[max(1rem,calc((100vw-80rem)/2+2rem))] lg:pr-0">
 		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
 		<h1 class="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
 			{t().hero.titleA}<br />
@@ -38,9 +38,11 @@
 			{/each}
 		</dl>
 	</div>
-	<div class="relative">
-		<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[4/5] sm:aspect-[5/5]" />
-		<div class="anim-float absolute -bottom-5 -left-3 flex items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 shadow-card sm:-left-6">
+	<div class="relative lg:h-full lg:min-h-[560px]">
+		<div class="h-full overflow-hidden rounded-card lg:rounded-l-card lg:rounded-r-none">
+			<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[16/10] lg:aspect-auto lg:h-full" rounded={false} />
+		</div>
+		<div class="anim-float absolute -bottom-5 left-3 flex items-center gap-3 rounded-card border border-line bg-surface px-4 py-3 shadow-card sm:left-6 lg:left-8">
 			<span class="inline-block h-3 w-3 rounded-full bg-accent" aria-hidden="true"></span>
 			<span>
 				<span class="block text-sm font-bold">{t().hero.freshBadge}</span>
@@ -53,7 +55,7 @@
 <WaveDivider />
 
 <!-- FEATURED PRODUCTS -->
-<section class="mx-auto max-w-6xl px-4 py-16">
+<section class="mx-auto max-w-7xl px-4 lg:px-8 py-16">
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<SectionHead eyebrow={t().featured.eyebrow} title={t().featured.title} sub={t().featured.sub} />
 		<a href="/katalog" class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
@@ -73,7 +75,7 @@
 
 <!-- QUALITY BAND -->
 <section class="bg-band">
-	<div class="mx-auto max-w-6xl px-4 py-16">
+	<div class="mx-auto max-w-7xl px-4 lg:px-8 py-16">
 		<SectionHead eyebrow={t().quality.eyebrow} title={t().quality.title} sub={t().quality.sub} align="center" />
 		<div class="mt-10 grid gap-5 md:grid-cols-3">
 			{#each t().quality.items as q, i}
@@ -90,7 +92,7 @@
 <WaveDivider />
 
 <!-- CERTIFICATIONS -->
-<section class="mx-auto max-w-6xl px-4 py-16 text-center">
+<section class="mx-auto max-w-7xl px-4 lg:px-8 py-16 text-center">
 	<SectionHead eyebrow={t().certs.eyebrow} title={t().certs.title} align="center" />
 	<div use:reveal class="mt-8 flex flex-wrap justify-center gap-3">
 		{#each t().certs.items as c}
@@ -100,7 +102,7 @@
 </section>
 
 <!-- CTA -->
-<section class="mx-auto max-w-6xl px-4 pb-4">
+<section class="mx-auto max-w-7xl px-4 lg:px-8 pb-4">
 	<div use:reveal class="rounded-card bg-brand px-8 py-12 text-center text-brand-ink shadow-card sm:px-16">
 		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t().cta.title}</h2>
 		<p class="mx-auto mt-3 max-w-xl opacity-80">{t().cta.sub}</p>
