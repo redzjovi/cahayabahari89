@@ -10,6 +10,7 @@ declare global {
 			env?: {
 				DB: D1Database;
 				IMAGES: R2Bucket;
+				IMAGES_URL?: string;
 				ADMIN_TOKEN?: string;
 				RESEND_API_KEY?: string;
 			};

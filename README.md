@@ -44,8 +44,10 @@ First-time setup already done: `pnpm approve-builds --all` (esbuild/workerd post
 | GET | `/api/categories` | list categories |
 | GET | `/api/products?q=&cat=&page=&limit=` | showcase list, paginated (default 12, max 50) |
 | GET | `/api/products/:slug` | detail + images + category |
-| POST | `/api/contact` `{name,email,message}` | stores lead in D1 `leads` |
+| POST | `/api/contact` `{name,email,company?,volume?,message}` | stores lead in D1 `leads` |
 | POST | `/api/admin/products` | `Authorization: Bearer <ADMIN_TOKEN>`, creates product |
+| POST | `/api/admin/images` | multipart `slug` + `files[]` (jpeg/png/webp/avif, ≤5 MB each), attaches images |
+| DELETE | `/api/admin/images/:id` | removes R2 object + row |
 
 Seed example (local dev server running):
 
@@ -54,6 +56,28 @@ curl -X POST localhost:5173/api/admin/products \
   -H 'content-type: application/json' \
   -H 'authorization: Bearer dev-token' \
   -d '{"slug":"jangkar-5kg","name":"Jangkar 5kg","price":250000,"status":"active"}'
+```
+
+## Product images (R2 + custom domain)
+
+Detail pages show a main image + thumbnail strip from `product_images` rows. Each row's
+`url` is built as `${IMAGES_URL}/${r2_key}` — empty `IMAGES_URL` (default) renders placeholders.
+
+1. Attach a domain to Cloudflare, then R2 bucket `cahayabahari89-images` → Settings →
+   Custom Domain (e.g. `https://images.yourdomain.com`) + allow public access.
+2. Set the secret (prod) or `.dev.vars` (local): `IMAGES_URL=https://images.yourdomain.com`
+   (`pnpm --filter web exec wrangler secret put IMAGES_URL`).
+3. Upload (local dev server or prod URL, Bearer token):
+
+```bash
+curl -X POST localhost:8787/api/admin/images \
+  -H 'authorization: Bearer dev-token' \
+  -F slug=fillet-salmon-premium \
+  -F 'files[]=@./salmon-1.jpg' \
+  -F 'files[]=@./salmon-2.jpg'
+# → [{id, r2Key, url, ...}] — gallery shows them in `sort` order
+curl -X DELETE localhost:8787/api/admin/images/3 \
+  -H 'authorization: Bearer dev-token'
 ```
 
 ## D1 / R2 (Cloudflare)

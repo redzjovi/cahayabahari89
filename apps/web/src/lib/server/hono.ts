@@ -8,9 +8,16 @@ import { products, categories, productImages, leads } from './db/schema';
 type Bindings = {
 	DB: D1Database;
 	IMAGES: R2Bucket;
+	IMAGES_URL?: string;
 	ADMIN_TOKEN?: string;
 	RESEND_API_KEY?: string;
 };
+
+/** Build the public URL for an R2 key. Empty base (unset IMAGES_URL) -> '' so UI falls back to placeholders. */
+export function imageUrl(env: Bindings, r2Key: string): string {
+	const base = (env.IMAGES_URL ?? '').replace(/\/+$/, '');
+	return base ? `${base}/${r2Key}` : '';
+}
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -99,7 +106,7 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 				.orderBy(productImages.sort)
 				.limit(1)
 				.get();
-			return { ...p, image: img ?? null };
+			return { ...p, image: img ? { ...img, url: imageUrl(c.env, img.r2Key) } : null };
 		})
 	);
 
@@ -121,7 +128,8 @@ app.get('/api/products/:slug', async (c) => {
 	const category = product.categoryId
 		? await db.select().from(categories).where(eq(categories.id, product.categoryId)).get()
 		: null;
-	return c.json({ ...product, images, category });
+	const imagesWithUrl = images.map((img) => ({ ...img, url: imageUrl(c.env, img.r2Key) }));
+	return c.json({ ...product, images: imagesWithUrl, category });
 });
 
 // Contact lead
@@ -167,6 +175,78 @@ app.post(
 		return c.json(res[0], 201);
 	}
 );
+
+function requireAdmin(c: { req: { header: (n: string) => string | undefined }; env: Bindings }) {
+	return c.req.header('authorization') === `Bearer ${c.env.ADMIN_TOKEN ?? 'dev-token'}`;
+}
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+
+function extFor(type: string): string {
+	if (type === 'image/png') return 'png';
+	if (type === 'image/webp') return 'webp';
+	if (type === 'image/avif') return 'avif';
+	return 'jpg';
+}
+
+// Admin: attach one or more images to a product (multipart: slug + files[])
+app.post('/api/admin/images', async (c) => {
+	if (!requireAdmin(c)) return c.json({ error: 'unauthorized' }, 401);
+	const form = await c.req.formData().catch(() => null);
+	if (!form) return c.json({ error: 'expected multipart form' }, 400);
+	const slug = String(form.get('slug') ?? '');
+	const files = form.getAll('files[]').concat(form.getAll('files'));
+	if (!slug) return c.json({ error: 'slug is required' }, 400);
+	if (!files.length) return c.json({ error: 'at least one file is required' }, 400);
+
+	const db = createDb(c.env.DB);
+	const product = await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get();
+	if (!product) return c.json({ error: 'product not found' }, 404);
+
+	const existing = await db
+		.select()
+		.from(productImages)
+		.where(eq(productImages.productId, product.id))
+		.orderBy(desc(productImages.sort))
+		.limit(1)
+		.get();
+	let sort = (existing?.sort ?? -1) + 1;
+
+	const created = [];
+	for (const f of files) {
+		if (!(f instanceof File)) return c.json({ error: 'invalid file part' }, 400);
+		if (!ALLOWED_IMAGE_TYPES.includes(f.type)) {
+			return c.json({ error: `unsupported type ${f.type || 'unknown'} (jpeg/png/webp/avif only)` }, 400);
+		}
+		if (f.size > MAX_IMAGE_BYTES) return c.json({ error: `${f.name} exceeds 5 MB` }, 400);
+		const key = `products/${slug}/${crypto.randomUUID()}.${extFor(f.type)}`;
+		await c.env.IMAGES.put(key, f.stream(), {
+			httpMetadata: { contentType: f.type },
+			customMetadata: { slug }
+		});
+		const [row] = await db
+			.insert(productImages)
+			.values({ productId: product.id, r2Key: key, alt: f.name || slug, sort })
+			.returning();
+		created.push({ ...row, url: imageUrl(c.env, key) });
+		sort++;
+	}
+	return c.json(created, 201);
+});
+
+// Admin: remove an image (R2 object + row)
+app.delete('/api/admin/images/:id', async (c) => {
+	if (!requireAdmin(c)) return c.json({ error: 'unauthorized' }, 401);
+	const id = Number(c.req.param('id'));
+	if (!Number.isInteger(id)) return c.json({ error: 'invalid id' }, 400);
+	const db = createDb(c.env.DB);
+	const row = await db.select().from(productImages).where(eq(productImages.id, id)).get();
+	if (!row) return c.json({ error: 'not found' }, 404);
+	await c.env.IMAGES.delete(row.r2Key);
+	await db.delete(productImages).where(eq(productImages.id, id));
+	return c.json({ ok: true });
+});
 
 export default app;
 export type AppType = typeof app;

@@ -13,7 +13,11 @@
 
 <a href={localize(`/products/${product.slug}`, locale.current)} use:reveal class="lift group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition">
 	<div class="relative">
-		<PhotoPlaceholder label={product.name} aspect="aspect-[4/3]" rounded={false} />
+		{#if product.image?.url}
+			<img src={product.image.url} alt={product.image.alt ?? product.name} class="aspect-[4/3] w-full object-cover" loading="lazy" />
+		{:else}
+			<PhotoPlaceholder label={product.name} aspect="aspect-[4/3]" rounded={false} />
+		{/if}
 		{#if badge}
 			<span class="absolute left-3 top-3 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-ink">{t().katalog.bestSeller}</span>
 		{/if}

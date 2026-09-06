@@ -7,6 +7,16 @@
 
 	let { data } = $props();
 	const p = $derived(data.product as any);
+	const gallery = $derived((p.images ?? []) as { url?: string; alt?: string | null }[]);
+	let selected = $state(0);
+
+	function thumbKeys(e: KeyboardEvent, i: number) {
+		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+		e.preventDefault();
+		const n = (i + (e.key === 'ArrowRight' ? 1 : -1) + gallery.length) % gallery.length;
+		selected = n;
+		document.getElementById(`thumb-${n}`)?.focus();
+	}
 
 	const WA_NUMBER = '6287877118199';
 	const waLink = $derived(
@@ -30,12 +40,36 @@
 
 	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
 		<div>
-			{#if p.images?.length}
-				<PhotoPlaceholder label={p.images[0].alt ?? p.name} aspect="aspect-[4/3]" />
-				{#if p.images.length > 1}
-					<div class="mt-3 grid grid-cols-3 gap-3">
-						{#each p.images.slice(1, 4) as img}
-							<PhotoPlaceholder label={img.alt ?? p.name} aspect="aspect-[4/3]" />
+			{#if gallery.length && gallery[Math.min(selected, gallery.length - 1)]?.url}
+				{@const current = gallery[Math.min(selected, gallery.length - 1)]}
+				<div
+					role="region"
+					aria-roledescription="carousel"
+					aria-label={p.name}
+					aria-live="polite"
+					class="overflow-hidden rounded-card border border-line bg-surface shadow-card"
+				>
+					<img src={current.url} alt={current.alt ?? p.name} class="aspect-[4/3] w-full object-cover" loading="eager" />
+				</div>
+				{#if gallery.length > 1}
+					<div class="mt-3 flex gap-3 overflow-x-auto pb-1" role="tablist" aria-label="Product images">
+						{#each gallery as img, i}
+							<button
+								type="button"
+								role="tab"
+								id={`thumb-${i}`}
+								aria-selected={i === selected}
+								aria-label={`Image ${i + 1}`}
+								onclick={() => (selected = i)}
+								onkeydown={(e) => thumbKeys(e, i)}
+								class="w-24 shrink-0 overflow-hidden rounded-lg border-2 transition {i === selected ? 'border-brand' : 'border-line opacity-70 hover:opacity-100'}"
+							>
+								{#if img.url}
+									<img src={img.url} alt="" class="aspect-[4/3] w-full object-cover" loading="lazy" />
+								{:else}
+									<PhotoPlaceholder label={`${i + 1}`} aspect="aspect-[4/3]" rounded={false} />
+								{/if}
+							</button>
 						{/each}
 					</div>
 				{/if}
