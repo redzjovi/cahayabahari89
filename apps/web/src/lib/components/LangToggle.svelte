@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { locale, type Locale } from '$lib/locale.svelte';
-	import { onMount } from 'svelte';
-
-	onMount(() => locale.init());
+	import { switchLocale } from '$lib/routes';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 
 	function pick(l: Locale) {
-		locale.set(l);
+		if (l === locale.current) return;
+		goto(switchLocale(page.url.pathname, page.url.search, l));
 	}
 </script>
 

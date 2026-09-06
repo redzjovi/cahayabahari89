@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t, locale } from '$lib/locale.svelte';
+	import { localize } from '$lib/routes';
 	import { reveal } from '$lib/reveal';
 	import ProductCard from '$lib/components/ProductCard.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
@@ -25,7 +26,7 @@
 </svelte:head>
 
 <section class="mx-auto max-w-7xl px-4 lg:px-8 pb-8 pt-12">
-	<a href="/katalog" class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
+	<a href={localize('/products', locale.current)} class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
 
 	<div class="mt-6 grid items-start gap-10 lg:grid-cols-2">
 		<div>
@@ -45,7 +46,7 @@
 
 		<div use:reveal>
 			{#if p.category}
-				<a href="/katalog?cat={p.category.slug}" class="inline-block rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-strong">{p.category.name}</a>
+				<a href={localize(`/products?cat=${p.category.slug}`, locale.current)} class="inline-block rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-strong">{p.category.name}</a>
 			{/if}
 			<h1 class="mt-3 font-display text-4xl font-bold tracking-tight">{p.name}</h1>
 			<p class="mt-2 font-display text-3xl font-bold text-brand">Rp {idr(p.price)}<span class="text-base font-medium text-muted">{t().katalog.per}</span></p>
@@ -53,7 +54,7 @@
 
 			<div class="mt-6 flex flex-wrap gap-3">
 				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">WhatsApp Order</a>
-				<a href="/contact" class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().detail.ask}</a>
+				<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().detail.ask}</a>
 			</div>
 
 			<div class="mt-8 overflow-hidden rounded-card border border-line">

@@ -4,28 +4,49 @@
 	import LangToggle from '$lib/components/LangToggle.svelte';
 	import FishMark from '$lib/components/FishMark.svelte';
 	import { t, locale } from '$lib/locale.svelte';
+	import { localize, parseLocalized } from '$lib/routes';
+	import { page } from '$app/state';
 	import '../app.css';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	let menuOpen = $state(false);
 
-	const WA_NUMBER = '6287877118199';
-	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
+	// URL (via +layout.server.ts) is the locale source of truth.
+	// Direct assignment runs synchronously during each SSR render pass
+	// (single-threaded: assignment + render are atomic per request).
+	// The $effect below handles client-side navs, persistence, <html lang>.
+	// svelte-check may warn that this captures data's initial value — intended.
+	locale.current = data.locale;
+	$effect(() => {
+		locale.set(data.locale);
+	});
+
+	const alternates = $derived.by(() => {
+		const parsed = parseLocalized(page.url.pathname);
+		const internal = parsed ? parsed.internal : page.url.pathname;
+		return {
+			en: page.url.origin + localize(internal + page.url.search, 'en'),
+			id: page.url.origin + localize(internal + page.url.search, 'id')
+		};
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<link rel="alternate" hreflang="en" href={alternates.en} />
+	<link rel="alternate" hreflang="id" href={alternates.id} />
+	<link rel="alternate" hreflang="x-default" href={alternates.id} />
 </svelte:head>
 
 <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
 	<nav class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-8">
-		<a href="/" class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+		<a href={localize('/', data.locale)} class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
 			<FishMark cls="h-7 w-7 text-accent-strong" />
 			Cahaya Bahari 89
 		</a>
 		<div class="hidden items-center gap-5 text-sm font-semibold md:flex">
-			<a href="/katalog" class="hover:text-brand">{t().nav.products}</a>
-			<a href="/contact" class="hover:text-brand">{t().nav.contact}</a>
+			<a href={localize('/products', data.locale)} class="hover:text-brand">{t().nav.products}</a>
+			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
 		<div class="hidden items-center gap-2 md:flex">
 			<LangToggle />
@@ -44,8 +65,8 @@
 	{#if menuOpen}
 		<div class="border-t border-line px-4 py-3 md:hidden">
 			<div class="flex flex-col gap-1 text-sm font-semibold">
-				<a href="/katalog" onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.products}</a>
-				<a href="/contact" onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.contact}</a>
+				<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.products}</a>
+				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2.5 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
 				<LangToggle />
@@ -90,7 +111,7 @@
 	<div class="border-t border-white/15">
 		<div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs opacity-70 lg:px-8">
 			<span>© {new Date().getFullYear()} Cahaya Bahari 89 — {t().footer.rights}</span>
-			<span>{locale.current === 'id' ? 'ID' : 'EN'} • SvelteKit + Hono on Cloudflare</span>
+			<span>{data.locale === 'id' ? 'ID' : 'EN'} • SvelteKit + Hono on Cloudflare</span>
 		</div>
 	</div>
 </footer>

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { t } from '$lib/locale.svelte';
+	import { t, locale } from '$lib/locale.svelte';
+	import { localize } from '$lib/routes';
 	import { reveal } from '$lib/reveal';
 	import SectionHead from '$lib/components/SectionHead.svelte';
 	import ProductCard from '$lib/components/ProductCard.svelte';
@@ -25,8 +26,8 @@
 		</h1>
 		<p class="mt-5 max-w-xl text-lg leading-relaxed text-muted">{t().hero.sub}</p>
 		<div class="mt-8 flex flex-wrap gap-3">
-			<a href="/katalog" class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">{t().hero.ctaProducts}</a>
-			<a href="/contact" class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().hero.ctaContact}</a>
+			<a href={localize('/products', locale.current)} class="rounded-full bg-brand px-7 py-3.5 font-bold text-brand-ink transition hover:brightness-110">{t().hero.ctaProducts}</a>
+			<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-7 py-3.5 font-bold transition hover:border-brand hover:text-brand">{t().hero.ctaContact}</a>
 		</div>
 		<dl class="mt-10 grid grid-cols-2 gap-6 border-t border-line pt-8 sm:grid-cols-4">
 			{#each t().stats as s}
@@ -58,7 +59,7 @@
 <section class="mx-auto max-w-7xl px-4 lg:px-8 py-16">
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<SectionHead eyebrow={t().featured.eyebrow} title={t().featured.title} sub={t().featured.sub} />
-		<a href="/katalog" class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
+		<a href={localize('/products', locale.current)} class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
 	</div>
 	{#if data.featured.length}
 		<div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

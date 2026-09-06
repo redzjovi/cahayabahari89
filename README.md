@@ -13,8 +13,13 @@ apps/web/                  # SvelteKit (adapter-cloudflare) + embedded Hono
                            #   /api/products, /api/products/:slug,
                            #   POST /api/contact, POST /api/admin/products
   src/lib/server/db/       # Drizzle schema (categories, products, product_images, leads)
-  src/routes/              # /, /contact (merged About story+milestones+values), /katalog, /katalog/[slug]
-                           # (nav: Products + Contact only; /about and /services removed)
+  src/routes/              # locale-prefixed URLs via reroute: /en + /id trees
+                           # EN: /en, /en/products, /en/products/[slug], /en/contact
+                           # ID: /id, /id/produk, /id/produk/[slug], /id/kontak
+                           # (nav: Products + Contact only; /about and /services removed;
+                           #  bare /katalog* 301-redirect to /id/produk*; bare URLs 301 to /id/…)
+  src/lib/routes.ts        # locale slug map: parseLocalized / localize / switchLocale
+  src/lib/locale.svelte.ts # EN/ID dictionary + store (URL is source of truth via layout data)
   wrangler.jsonc           # D1 binding DB, R2 binding IMAGES
   drizzle/                 # generated SQL migrations for D1
 packages/shared/           # zod schemas shared FE/BE (productsQuery, contact, adminProduct)

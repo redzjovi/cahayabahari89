@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { t } from '$lib/locale.svelte';
+	import { t, locale } from '$lib/locale.svelte';
+	import { localize } from '$lib/routes';
 	import SectionHead from '$lib/components/SectionHead.svelte';
 	import ProductCard from '$lib/components/ProductCard.svelte';
 
@@ -16,7 +17,7 @@
 		{ v: 'price_desc', label: () => t().katalog.sortPriceDesc }
 	];
 
-	/** Build a /katalog URL preserving current params with overrides. */
+	/** Build a localized /products URL preserving current params with overrides. */
 	function pageUrl(over: Record<string, string | undefined>) {
 		const p = new URLSearchParams();
 		const cur: Record<string, string | undefined> = {
@@ -27,7 +28,7 @@
 			if (v) p.set(k, v);
 		}
 		const s = p.toString();
-		return s ? `/katalog?${s}` : '/katalog';
+		return localize('/products' + (s ? `?${s}` : ''), locale.current);
 	}
 
 	function pageNumUrl(n: number) {
@@ -74,7 +75,7 @@
 			<summary class="cursor-pointer list-none px-5 py-4 text-sm font-bold lg:hidden">
 				{t().katalog.filters} ▾
 			</summary>
-			<form method="GET" action="/katalog" class="grid gap-5 border-t border-line px-5 py-5">
+			<form method="GET" action={localize('/products', locale.current)} class="grid gap-5 border-t border-line px-5 py-5">
 				<input type="hidden" name="sort" value={data.sort ?? 'best'} />
 				<input type="hidden" name="q" value={data.q ?? ''} />
 				<fieldset>
@@ -114,7 +115,7 @@
 
 		<!-- MAIN: toolbar + list -->
 		<div class="min-w-0">
-			<form method="GET" action="/katalog" class="flex flex-wrap items-center gap-2">
+			<form method="GET" action={localize('/products', locale.current)} class="flex flex-wrap items-center gap-2">
 				<input type="hidden" name="cat" value={data.cat ?? ''} />
 				<input type="hidden" name="min" value={data.min ?? ''} />
 				<input type="hidden" name="max" value={data.max ?? ''} />

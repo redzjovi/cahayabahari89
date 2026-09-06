@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t, locale } from '$lib/locale.svelte';
+	import { localize } from '$lib/routes';
 	import { reveal } from '$lib/reveal';
 	import PhotoPlaceholder from './PhotoPlaceholder.svelte';
 
@@ -10,7 +11,7 @@
 	}
 </script>
 
-<a href="/katalog/{product.slug}" use:reveal class="lift group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition">
+<a href={localize(`/products/${product.slug}`, locale.current)} use:reveal class="lift group flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition">
 	<div class="relative">
 		<PhotoPlaceholder label={product.name} aspect="aspect-[4/3]" rounded={false} />
 		{#if badge}
