@@ -39,7 +39,7 @@
 </svelte:head>
 
 <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
-	<nav class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-8">
+	<nav class="content-wrap flex items-center justify-between gap-3 py-3">
 		<a href={localize('/', data.locale)} class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
 			<FishMark cls="h-7 w-7 text-accent-strong" />
 			Cahaya Bahari 89
@@ -81,7 +81,7 @@
 </main>
 
 <footer class="mt-16 bg-brand text-brand-ink">
-	<div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 lg:px-8">
+	<div class="content-wrap grid gap-10 py-12 sm:grid-cols-2">
 		<div>
 			<span class="flex items-center gap-2 text-lg font-extrabold">
 				<FishMark cls="h-6 w-6 text-accent" />
@@ -109,7 +109,7 @@
 		</div>
 	</div>
 	<div class="border-t border-white/15">
-		<div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs opacity-70 lg:px-8">
+		<div class="content-wrap flex flex-wrap items-center justify-between gap-2 py-4 text-xs opacity-70">
 			<span>© {new Date().getFullYear()} Cahaya Bahari 89 — {t().footer.rights}</span>
 			<span>{data.locale === 'id' ? 'ID' : 'EN'} • SvelteKit + Hono on Cloudflare</span>
 		</div>

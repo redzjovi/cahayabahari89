@@ -66,7 +66,7 @@
 
 <svelte:head><title>Products — Cahaya Bahari 89</title></svelte:head>
 
-<section class="mx-auto max-w-7xl px-4 lg:px-8 pb-8 pt-12">
+<section class="content-wrap pb-8 pt-12">
 	<SectionHead eyebrow={t().nav.products} title="" />
 
 	<div class="mt-8 grid items-start gap-8 lg:grid-cols-[240px_1fr]">

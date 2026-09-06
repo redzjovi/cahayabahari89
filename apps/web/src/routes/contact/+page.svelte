@@ -14,7 +14,7 @@
 <svelte:head><title>About & Contact — Cahaya Bahari 89</title></svelte:head>
 
 <!-- 01 CONTACT CHANNELS -->
-<section class="mx-auto max-w-7xl px-4 lg:px-8 pb-8 pt-12">
+<section class="content-wrap pb-8 pt-12">
 	<SectionHead eyebrow={t().contact.eyebrow} title="" />
 	<div class="mt-8 grid gap-5 sm:grid-cols-2">
 		<a
@@ -94,7 +94,7 @@
 </section>
 
 <!-- 03 OUR STORY -->
-<section class="mx-auto max-w-7xl px-4 lg:px-8 py-8">
+<section class="content-wrap py-8">
 	<SectionHead eyebrow={t().about.eyebrow} title={t().about.title} />
 	<div class="mt-8 grid items-start gap-10 lg:grid-cols-2">
 		<div use:reveal class="space-y-4 leading-relaxed text-muted">
@@ -107,7 +107,7 @@
 
 <!-- 04 OUR JOURNEY + VALUES -->
 <section class="bg-band">
-	<div class="mx-auto max-w-7xl px-4 lg:px-8 py-14">
+	<div class="content-wrap py-14">
 		<SectionHead title={locale.current === 'id' ? 'Perjalanan kami' : 'Our journey'} />
 		<ol class="mt-6 grid gap-5 md:grid-cols-4">
 			{#each t().about.milestones as m}

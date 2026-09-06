@@ -25,7 +25,7 @@
 	<meta property="og:description" content={p.description ?? p.name} />
 </svelte:head>
 
-<section class="mx-auto max-w-7xl px-4 lg:px-8 pb-8 pt-12">
+<section class="content-wrap pb-8 pt-12">
 	<a href={localize('/products', locale.current)} class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
 
 	<div class="mt-6 grid items-start gap-10 lg:grid-cols-2">

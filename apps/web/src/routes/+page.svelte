@@ -18,7 +18,7 @@
 
 <!-- HERO: text in 7xl measure, image stretched to right viewport edge -->
 <section class="grid items-center gap-10 px-4 pb-16 pt-12 lg:grid-cols-2 lg:gap-12 lg:px-0 lg:pb-24 lg:pt-20">
-	<div class="lg:pl-[max(1rem,calc((100vw-80rem)/2+2rem))] lg:pr-0">
+	<div class="lg:pl-[max(1rem,calc((100vw-88rem)/2+2rem))] lg:pr-0">
 		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
 		<h1 class="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
 			{t().hero.titleA}<br />
@@ -56,7 +56,7 @@
 <WaveDivider />
 
 <!-- FEATURED PRODUCTS -->
-<section class="mx-auto max-w-7xl px-4 lg:px-8 py-16">
+<section class="content-wrap py-16">
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<SectionHead eyebrow={t().featured.eyebrow} title={t().featured.title} sub={t().featured.sub} />
 		<a href={localize('/products', locale.current)} class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
@@ -76,7 +76,7 @@
 
 <!-- QUALITY BAND -->
 <section class="bg-band">
-	<div class="mx-auto max-w-7xl px-4 lg:px-8 py-16">
+	<div class="content-wrap py-16">
 		<SectionHead eyebrow={t().quality.eyebrow} title={t().quality.title} sub={t().quality.sub} align="center" />
 		<div class="mt-10 grid gap-5 md:grid-cols-3">
 			{#each t().quality.items as q, i}
@@ -93,7 +93,7 @@
 <WaveDivider />
 
 <!-- CERTIFICATIONS -->
-<section class="mx-auto max-w-7xl px-4 lg:px-8 py-16 text-center">
+<section class="content-wrap py-16 text-center">
 	<SectionHead eyebrow={t().certs.eyebrow} title={t().certs.title} align="center" />
 	<div use:reveal class="mt-8 flex flex-wrap justify-center gap-3">
 		{#each t().certs.items as c}
@@ -103,7 +103,7 @@
 </section>
 
 <!-- CTA -->
-<section class="mx-auto max-w-7xl px-4 lg:px-8 pb-4">
+<section class="content-wrap pb-4">
 	<div use:reveal class="rounded-card bg-brand px-8 py-12 text-center text-brand-ink shadow-card sm:px-16">
 		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t().cta.title}</h2>
 		<p class="mx-auto mt-3 max-w-xl opacity-80">{t().cta.sub}</p>
