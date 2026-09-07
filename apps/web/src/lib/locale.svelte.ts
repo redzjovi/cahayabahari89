@@ -47,6 +47,8 @@ const en = {
 		title: 'A seafood company built on cold water and trust',
 		p1: 'Cahaya Bahari 89 started with one belief: great salmon should taste like the ocean it came from. We work directly with fishers and certified farms, grade every batch at dawn, and move it under constant refrigeration.',
 		p2: 'Today we supply restaurants, hotels, and retailers — and pack family-sized portions for home cooks who refuse to compromise.',
+		journeyTitle: 'Our journey',
+		valuesTitle: 'What we stand for',
 		milestones: [
 			{ year: '2019', text: 'Founded as a single market stall with one chiller.' },
 			{ year: '2021', text: 'First B2B contracts with restaurants and hotels.' },
@@ -238,6 +240,8 @@ const id: Dict = {
 		title: 'Perusahaan seafood yang dibangun dari air dingin dan kepercayaan',
 		p1: 'Cahaya Bahari 89 berawal dari satu keyakinan: salmon yang hebat harus terasa seperti laut asalnya. Kami bekerja langsung dengan nelayan dan farm bersertifikat, me-grading setiap batch saat fajar, dan memindahkannya dalam pendinginan konstan.',
 		p2: 'Kini kami memasok resto, hotel, dan retail — serta mengemas porsi keluarga untuk juru masak rumahan yang menolak kompromi.',
+		journeyTitle: 'Perjalanan kami',
+		valuesTitle: 'Nilai-nilai kami',
 		milestones: [
 			{ year: '2019', text: 'Berdiri sebagai satu lapak pasar dengan satu chiller.' },
 			{ year: '2021', text: 'Kontrak B2B pertama dengan resto dan hotel.' },
