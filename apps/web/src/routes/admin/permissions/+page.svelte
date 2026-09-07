@@ -12,6 +12,9 @@
 	let error = $state('');
 	let notice = $state('');
 	let confirming: string | null = $state(null);
+	type SortKey = 'slug' | 'name';
+	let sortKey = $state<SortKey>('slug');
+	let sortDir = $state<'asc' | 'desc'>('asc');
 
 	const canView = $derived(adminSession.can('roles.manage'));
 
@@ -35,6 +38,39 @@
 		if (canView) await load();
 		else loading = false;
 	});
+
+	const sorted = $derived.by(() => {
+		const arr = [...perms];
+		const dir = sortDir === 'asc' ? 1 : -1;
+		arr.sort((a, b) => a[sortKey].localeCompare(b[sortKey]) * dir);
+		return arr;
+	});
+
+	function toggleSort(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = 'asc';
+		}
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	function sortLabel(key: SortKey, col: string): string {
+		const raw = sortKey === key
+			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
+			: t().admin.sortBy;
+		return raw.replace('{col}', col);
+	}
+
+	function sortIndicator(key: SortKey): string {
+		if (sortKey !== key) return '↕';
+		return sortDir === 'asc' ? '▲' : '▼';
+	}
 
 	function apiError(json: unknown): string {
 		const e = (json as { error?: string }).error ?? '';
@@ -85,13 +121,33 @@
 			<table class="w-full min-w-[520px] text-left text-sm">
 				<thead>
 					<tr class="border-b border-line text-xs uppercase tracking-wider text-muted">
-						<th class="px-4 py-3">{t().admin.permissionSlug}</th>
-						<th class="px-4 py-3">{t().admin.permissionName}</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('slug')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('slug')}
+								aria-label={sortLabel('slug', t().admin.permissionSlug)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'slug' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.permissionSlug}</span>
+								<span class="text-[10px] {sortKey === 'slug' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('slug')}</span>
+							</button>
+						</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('name')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('name')}
+								aria-label={sortLabel('name', t().admin.permissionName)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'name' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.permissionName}</span>
+								<span class="text-[10px] {sortKey === 'name' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('name')}</span>
+							</button>
+						</th>
 						<th class="px-4 py-3">{t().admin.actions}</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-line">
-					{#each perms as p}
+					{#each sorted as p}
 						<tr>
 							<td class="px-4 py-2.5 font-mono text-[13px] font-semibold">{p.slug}</td>
 							<td class="px-4 py-2.5">{p.name}</td>

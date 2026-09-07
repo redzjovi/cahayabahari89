@@ -5,12 +5,15 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	type UserRow = { id: number; email: string; name: string; status: string; roles: string[] };
+	type UserRow = { id: number; email: string; name: string; status: string; roles: string[]; createdAt?: string | null };
 
 	let users = $state<UserRow[]>([]);
 	let loading = $state(true);
 	let error = $state('');
 	let notice = $state('');
+	type SortKey = 'email' | 'name' | 'status' | 'created';
+	let sortKey = $state<SortKey>('created');
+	let sortDir = $state<'asc' | 'desc'>('desc');
 
 	const canView = $derived(adminSession.can('users.manage'));
 
@@ -34,6 +37,66 @@
 		if (canView) await load();
 		else loading = false;
 	});
+
+	const sorted = $derived.by(() => {
+		const arr = [...users];
+		const dir = sortDir === 'asc' ? 1 : -1;
+		switch (sortKey) {
+			case 'created':
+				arr.sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') * dir);
+				break;
+			case 'status':
+				arr.sort((a, b) => a.status.localeCompare(b.status) * dir);
+				break;
+			case 'email':
+				arr.sort((a, b) => a.email.localeCompare(b.email) * dir);
+				break;
+			case 'name':
+				arr.sort((a, b) => a.name.localeCompare(b.name) * dir);
+				break;
+		}
+		return arr;
+	});
+
+	function toggleSort(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = key === 'created' ? 'desc' : 'asc';
+		}
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	function sortLabel(key: SortKey, col: string): string {
+		const raw = sortKey === key
+			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
+			: t().admin.sortBy;
+		return raw.replace('{col}', col);
+	}
+
+	function sortIndicator(key: SortKey): string {
+		if (sortKey !== key) return '↕';
+		return sortDir === 'asc' ? '▲' : '▼';
+	}
+
+	function formatDateTime(value: string | null): string {
+		if (!value) return '—';
+		const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return value;
+		return d.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
 </script>
 
 <svelte:head><title>{t().admin.users} — Admin</title></svelte:head>
@@ -58,15 +121,56 @@
 			<table class="w-full min-w-[640px] text-left text-sm">
 				<thead>
 					<tr class="border-b border-line text-xs uppercase tracking-wider text-muted">
-						<th class="px-4 py-3">{t().admin.email}</th>
-						<th class="px-4 py-3">{t().admin.name}</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('email')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('email')}
+								aria-label={sortLabel('email', t().admin.email)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'email' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.email}</span>
+								<span class="text-[10px] {sortKey === 'email' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('email')}</span>
+							</button>
+						</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('name')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('name')}
+								aria-label={sortLabel('name', t().admin.name)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'name' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.name}</span>
+								<span class="text-[10px] {sortKey === 'name' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('name')}</span>
+							</button>
+						</th>
 						<th class="px-4 py-3">{t().admin.editRoles}</th>
-						<th class="px-4 py-3">{t().admin.status}</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('status')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('status')}
+								aria-label={sortLabel('status', t().admin.status)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'status' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.status}</span>
+								<span class="text-[10px] {sortKey === 'status' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('status')}</span>
+							</button>
+						</th>
+						<th class="px-4 py-3" aria-sort={ariaSort('created')}>
+							<button
+								type="button"
+								onclick={() => toggleSort('created')}
+								aria-label={sortLabel('created', t().admin.createdAt)}
+								class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'created' ? 'text-ink' : ''}"
+							>
+								<span>{t().admin.createdAt}</span>
+								<span class="text-[10px] {sortKey === 'created' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('created')}</span>
+							</button>
+						</th>
 						<th class="px-4 py-3">{t().admin.actions}</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-line">
-					{#each users as u}
+					{#each sorted as u}
 						<tr>
 							<td class="px-4 py-2.5 font-semibold">{u.email}</td>
 							<td class="px-4 py-2.5">{u.name}</td>
@@ -80,6 +184,7 @@
 									{u.status === 'active' ? t().admin.active : t().admin.suspended}
 								</span>
 							</td>
+							<td class="px-4 py-2.5 text-xs text-muted">{formatDateTime(u.createdAt ?? null)}</td>
 							<td class="px-4 py-2.5">
 								<a href={localize(`/admin/users/${u.id}/edit`, locale.current)} class="rounded-full border border-line px-3 py-1 text-xs font-bold hover:border-brand">{t().admin.editItem}</a>
 							</td>
