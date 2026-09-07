@@ -33,15 +33,15 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 		if (cat) {
 			const r = await fetch(`/api/products?cat=${encodeURIComponent(cat)}&limit=4`);
 			if (r.ok) {
-				const data = (await r.json()) as { products: { slug: string }[] };
-				related = (data.products ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
+				const data = (await r.json()) as { items: { slug: string }[] };
+				related = (data.items ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
 			}
 		}
 		if (!related.length) {
 			const r = await fetch('/api/products?limit=4');
 			if (r.ok) {
-				const data = (await r.json()) as { products: { slug: string }[] };
-				related = (data.products ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
+				const data = (await r.json()) as { items: { slug: string }[] };
+				related = (data.items ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
 			}
 		}
 	} catch {

@@ -22,14 +22,21 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	if (!res.ok) {
 		return { products: [], total: 0, page, limit: 12, q, cat, min, max, sort, error: 'Failed to load products (DB not migrated yet)' };
 	}
-	const data = await res.json() as { products: unknown[]; total: number; page: number; limit: number };
+	const data = await res.json() as { items: unknown[]; total: number; page: number; limit: number };
 
-	// Also fetch categories for filter
+	// Also fetch categories for filter (paginated: read all by paginating)
 	let categories: unknown[] = [];
 	try {
-		const cRes = await fetch('/api/categories');
-		if (cRes.ok) categories = await cRes.json();
+		let cPage = 1;
+		while (true) {
+			const cRes = await fetch(`/api/categories?page=${cPage}&limit=100`);
+			if (!cRes.ok) break;
+			const cData = (await cRes.json()) as { items: { id: number; slug: string; name: string }[]; total: number; page: number; limit: number };
+			categories = categories.concat(cData.items);
+			if (cPage * cData.limit >= cData.total) break;
+			cPage++;
+		}
 	} catch {}
 
-	return { ...data, categories, q, cat, min, max, sort };
+	return { ...data, products: data.items, categories, q, cat, min, max, sort };
 };

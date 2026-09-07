@@ -4,26 +4,68 @@
 	import { adminSession } from '$lib/admin-session.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
 
 	type UserRow = { id: number; email: string; name: string; status: string; roles: string[]; createdAt?: string | null };
 
-	let users = $state<UserRow[]>([]);
+	const USERS_STATUS_VALUES = ['active', 'suspended'] as const;
+
+	type SortKey = 'email' | 'name' | 'status' | 'created';
+	const SORT_API: Record<SortKey, { asc: string; desc: string; default: 'asc' | 'desc' }> = {
+		email: { asc: 'email_asc', desc: 'email_desc', default: 'asc' },
+		name: { asc: 'name_asc', desc: 'name_desc', default: 'asc' },
+		status: { asc: 'status_asc', desc: 'status_desc', default: 'asc' },
+		created: { asc: 'created_asc', desc: 'created_desc', default: 'desc' }
+	};
+	const SORT_FROM_API: Record<string, { key: SortKey; dir: 'asc' | 'desc' }> = {};
+	for (const [k, v] of Object.entries(SORT_API)) {
+		SORT_FROM_API[v.asc] = { key: k as SortKey, dir: 'asc' };
+		SORT_FROM_API[v.desc] = { key: k as SortKey, dir: 'desc' };
+	}
+
+	let items = $state<UserRow[]>([]);
 	let loading = $state(true);
 	let error = $state('');
 	let notice = $state('');
-	type SortKey = 'email' | 'name' | 'status' | 'created';
+	let fEmail = $state('');
+	let fName = $state('');
+	let fStatus = $state<'all' | 'active' | 'suspended'>('all');
 	let sortKey = $state<SortKey>('created');
 	let sortDir = $state<'asc' | 'desc'>('desc');
+	let currentPage = $state(1);
+	let pageSize = $state<10 | 25 | 50 | 100>(10);
+	let total = $state(0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
 	const canView = $derived(adminSession.can('users.manage'));
 
 	async function load() {
 		loading = true;
 		error = '';
+		const params = new URLSearchParams();
+		params.set('page', String(currentPage));
+		params.set('limit', String(pageSize));
+		const m = SORT_API[sortKey];
+		params.set('sort', sortDir === 'asc' ? m.asc : m.desc);
+		if (fEmail.trim()) params.set('email', fEmail.trim());
+		if (fName.trim()) params.set('name', fName.trim());
+		if (fStatus !== 'all') params.set('status', fStatus);
 		try {
-			const res = await adminSession.api('/api/admin/users');
+			const res = await adminSession.api(`/api/admin/users?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			users = (await res.json()) as UserRow[];
+			const data = (await res.json()) as { items: UserRow[]; total: number };
+			items = data.items;
+			total = data.total;
+			if (items.length === 0 && currentPage > 1) {
+				currentPage = 1;
+				await gotoSamePage(buildSearch({
+					page: 1, limit: pageSize,
+					sort: SORT_API[sortKey][sortDir],
+					email: fEmail, name: fName, status: fStatus
+				}));
+				await load();
+				return;
+			}
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -34,37 +76,47 @@
 	onMount(async () => {
 		adminSession.init();
 		if (!(await adminSession.refresh())) return;
-		if (canView) await load();
-		else loading = false;
+		const emailParam = readStringParam('email');
+		if (emailParam) fEmail = emailParam;
+		const nameParam = readStringParam('name');
+		if (nameParam) fName = nameParam;
+		const statusParam = readStringParam('status', [...USERS_STATUS_VALUES]);
+		fStatus = (statusParam as 'active' | 'suspended') ?? 'all';
+		const sortParam = readStringParam('sort');
+		const mapped = sortParam ? SORT_FROM_API[sortParam] : null;
+		if (mapped) {
+			sortKey = mapped.key;
+			sortDir = mapped.dir;
+		}
+		currentPage = readIntParam('page', 1);
+		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
+		await load();
 	});
 
-	const sorted = $derived.by(() => {
-		const arr = [...users];
-		const dir = sortDir === 'asc' ? 1 : -1;
-		switch (sortKey) {
-			case 'created':
-				arr.sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') * dir);
-				break;
-			case 'status':
-				arr.sort((a, b) => a.status.localeCompare(b.status) * dir);
-				break;
-			case 'email':
-				arr.sort((a, b) => a.email.localeCompare(b.email) * dir);
-				break;
-			case 'name':
-				arr.sort((a, b) => a.name.localeCompare(b.name) * dir);
-				break;
-		}
-		return arr;
-	});
+	async function applyFilters() {
+		currentPage = 1;
+		await gotoSamePage(buildSearch({
+			page: 1, limit: pageSize,
+			sort: SORT_API[sortKey][sortDir],
+			email: fEmail, name: fName, status: fStatus
+		}));
+		await load();
+	}
 
 	function toggleSort(key: SortKey) {
 		if (sortKey === key) {
 			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
 		} else {
 			sortKey = key;
-			sortDir = key === 'created' ? 'desc' : 'asc';
+			sortDir = SORT_API[key].default;
 		}
+		currentPage = 1;
+		gotoSamePage(buildSearch({
+			page: 1, limit: pageSize,
+			sort: SORT_API[sortKey][sortDir],
+			email: fEmail, name: fName, status: fStatus
+		}));
+		void load();
 	}
 
 	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
@@ -97,6 +149,35 @@
 			minute: '2-digit'
 		});
 	}
+
+	async function setPage(p: number) {
+		const next = Math.max(1, Math.min(pageCount, p));
+		if (next === currentPage) return;
+		currentPage = next;
+		await gotoSamePage(buildSearch({
+			page: currentPage, limit: pageSize,
+			sort: SORT_API[sortKey][sortDir],
+			email: fEmail, name: fName, status: fStatus
+		}));
+		await load();
+	}
+
+	async function setPageSize(s: number) {
+		pageSize = (s as 10 | 25 | 50 | 100);
+		currentPage = 1;
+		await gotoSamePage(buildSearch({
+			page: 1, limit: pageSize,
+			sort: SORT_API[sortKey][sortDir],
+			email: fEmail, name: fName, status: fStatus
+		}));
+		await load();
+	}
+
+	let fDebounce: ReturnType<typeof setTimeout> | null = null;
+	function onFilterInput() {
+		if (fDebounce) clearTimeout(fDebounce);
+		fDebounce = setTimeout(() => void applyFilters(), 300);
+	}
 </script>
 
 <svelte:head><title>{t().admin.users} — Admin</title></svelte:head>
@@ -114,10 +195,23 @@
 
 	{#if !canView}
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
-	{:else if loading}
-		<p class="mt-6 text-muted">…</p>
 	{:else}
-		<div class="mt-6 overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+		<div class="mt-6 flex flex-wrap items-center gap-2">
+			<input bind:value={fEmail} oninput={onFilterInput} placeholder={t().admin.searchEmail} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
+			<input bind:value={fName} oninput={onFilterInput} placeholder={t().admin.searchName} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
+			<select bind:value={fStatus} onchange={() => applyFilters()} aria-label={t().admin.status} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
+				<option value="all">{t().admin.statusAll}</option>
+				<option value="active">{t().admin.active}</option>
+				<option value="suspended">{t().admin.suspended}</option>
+			</select>
+		</div>
+
+		{#if loading}
+			<p class="mt-6 text-muted">…</p>
+		{:else if items.length === 0}
+			<p class="mt-6 rounded-card border border-dashed border-line p-6 text-center text-muted">{t().admin.noResults}</p>
+		{:else}
+			<div class="mt-4 overflow-x-auto rounded-card border border-line bg-surface shadow-card">
 			<table class="w-full min-w-[640px] text-left text-sm">
 				<thead>
 					<tr class="border-b border-line text-xs uppercase tracking-wider text-muted">
@@ -170,7 +264,7 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-line">
-					{#each sorted as u}
+					{#each items as u}
 						<tr>
 							<td class="px-4 py-2.5 font-semibold">{u.email}</td>
 							<td class="px-4 py-2.5">{u.name}</td>
@@ -193,5 +287,20 @@
 				</tbody>
 			</table>
 		</div>
+		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
+			<span>{items.length} / {total}</span>
+			<span class="ml-auto flex items-center gap-2">
+				<label class="flex items-center gap-1.5">
+					<span>{t().admin.perPage}</span>
+					<select value={pageSize} onchange={(e) => setPageSize(Number((e.currentTarget as HTMLSelectElement).value))} class="rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold text-ink">
+						{#each PAGE_SIZES as s}<option value={s}>{s}</option>{/each}
+					</select>
+				</label>
+				<button type="button" onclick={() => setPage(currentPage - 1)} disabled={currentPage <= 1} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.prev}</button>
+				<span>{t().admin.page} {currentPage} {t().admin.of} {pageCount}</span>
+				<button type="button" onclick={() => setPage(currentPage + 1)} disabled={currentPage >= pageCount} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.next}</button>
+			</span>
+		</div>
+	{/if}
 	{/if}
 </section>

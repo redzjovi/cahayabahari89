@@ -4,27 +4,66 @@
 	import { adminSession } from '$lib/admin-session.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
 
 	type PermRow = { id: number; slug: string; name: string };
 
-	let perms = $state<PermRow[]>([]);
+	let items = $state<PermRow[]>([]);
 	let loading = $state(true);
 	let error = $state('');
 	let notice = $state('');
 	let confirming: string | null = $state(null);
 	type SortKey = 'slug' | 'name';
+	const SORT_API: Record<SortKey, { asc: string; desc: string; default: 'asc' | 'desc' }> = {
+		slug: { asc: 'slug_asc', desc: 'slug_desc', default: 'asc' },
+		name: { asc: 'name_asc', desc: 'name_desc', default: 'asc' }
+	};
+	const SORT_FROM_API: Record<string, { key: SortKey; dir: 'asc' | 'desc' }> = {};
+	for (const [k, v] of Object.entries(SORT_API)) {
+		SORT_FROM_API[v.asc] = { key: k as SortKey, dir: 'asc' };
+		SORT_FROM_API[v.desc] = { key: k as SortKey, dir: 'desc' };
+	}
 	let sortKey = $state<SortKey>('slug');
 	let sortDir = $state<'asc' | 'desc'>('asc');
+	let currentPage = $state(1);
+	let pageSize = $state<10 | 25 | 50 | 100>(10);
+	let total = $state(0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
 	const canView = $derived(adminSession.can('roles.manage'));
+
+	function currentSortApi(): string {
+		const m = SORT_API[sortKey];
+		return sortDir === 'asc' ? m.asc : m.desc;
+	}
+
+	function currentSearchHref(): string {
+		return buildSearch({
+			page: currentPage,
+			limit: pageSize,
+			sort: currentSortApi()
+		});
+	}
 
 	async function load() {
 		loading = true;
 		error = '';
+		const params = new URLSearchParams();
+		params.set('page', String(currentPage));
+		params.set('limit', String(pageSize));
+		params.set('sort', currentSortApi());
 		try {
-			const res = await adminSession.api('/api/admin/permissions');
+			const res = await adminSession.api(`/api/admin/permissions?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			perms = (await res.json()) as PermRow[];
+			const data = (await res.json()) as { items: PermRow[]; total: number };
+			items = data.items;
+			total = data.total;
+			if (items.length === 0 && currentPage > 1) {
+				currentPage = 1;
+				await gotoSamePage(currentSearchHref());
+				await load();
+				return;
+			}
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -35,42 +74,16 @@
 	onMount(async () => {
 		adminSession.init();
 		if (!(await adminSession.refresh())) return;
-		if (canView) await load();
-		else loading = false;
-	});
-
-	const sorted = $derived.by(() => {
-		const arr = [...perms];
-		const dir = sortDir === 'asc' ? 1 : -1;
-		arr.sort((a, b) => a[sortKey].localeCompare(b[sortKey]) * dir);
-		return arr;
-	});
-
-	function toggleSort(key: SortKey) {
-		if (sortKey === key) {
-			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-		} else {
-			sortKey = key;
-			sortDir = 'asc';
+		const sortParam = readStringParam('sort');
+		const mapped = sortParam ? SORT_FROM_API[sortParam] : null;
+		if (mapped) {
+			sortKey = mapped.key;
+			sortDir = mapped.dir;
 		}
-	}
-
-	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
-		if (sortKey !== key) return 'none';
-		return sortDir === 'asc' ? 'ascending' : 'descending';
-	}
-
-	function sortLabel(key: SortKey, col: string): string {
-		const raw = sortKey === key
-			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
-			: t().admin.sortBy;
-		return raw.replace('{col}', col);
-	}
-
-	function sortIndicator(key: SortKey): string {
-		if (sortKey !== key) return '↕';
-		return sortDir === 'asc' ? '▲' : '▼';
-	}
+		currentPage = readIntParam('page', 1);
+		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
+		await load();
+	});
 
 	function apiError(json: unknown): string {
 		const e = (json as { error?: string }).error ?? '';
@@ -96,6 +109,52 @@
 			error = t().admin.loadFail;
 		}
 	}
+
+	function toggleSort(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = SORT_API[key].default;
+		}
+		currentPage = 1;
+		void (async () => {
+			await gotoSamePage(currentSearchHref());
+			await load();
+		})();
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	function sortLabel(key: SortKey, col: string): string {
+		const raw = sortKey === key
+			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
+			: t().admin.sortBy;
+		return raw.replace('{col}', col);
+	}
+
+	function sortIndicator(key: SortKey): string {
+		if (sortKey !== key) return '↕';
+		return sortDir === 'asc' ? '▲' : '▼';
+	}
+
+	async function setPage(p: number) {
+		const next = Math.max(1, Math.min(pageCount, p));
+		if (next === currentPage) return;
+		currentPage = next;
+		await gotoSamePage(currentSearchHref());
+		await load();
+	}
+
+	async function setPageSize(s: number) {
+		pageSize = (s as 10 | 25 | 50 | 100);
+		currentPage = 1;
+		await gotoSamePage(currentSearchHref());
+		await load();
+	}
 </script>
 
 <svelte:head><title>{t().admin.permissionsTitle} — Admin</title></svelte:head>
@@ -116,6 +175,8 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else if loading}
 		<p class="mt-6 text-muted">…</p>
+	{:else if items.length === 0}
+		<p class="mt-6 rounded-card border border-dashed border-line p-6 text-center text-muted">{t().admin.noResults}</p>
 	{:else}
 		<div class="mt-6 overflow-x-auto rounded-card border border-line bg-surface shadow-card">
 			<table class="w-full min-w-[520px] text-left text-sm">
@@ -147,7 +208,7 @@
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-line">
-					{#each sorted as p}
+					{#each items as p}
 						<tr>
 							<td class="px-4 py-2.5 font-mono text-[13px] font-semibold">{p.slug}</td>
 							<td class="px-4 py-2.5">{p.name}</td>
@@ -166,6 +227,20 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
+			<span>{items.length} / {total}</span>
+			<span class="ml-auto flex items-center gap-2">
+				<label class="flex items-center gap-1.5">
+					<span>{t().admin.perPage}</span>
+					<select value={pageSize} onchange={(e) => setPageSize(Number((e.currentTarget as HTMLSelectElement).value))} class="rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold text-ink">
+						{#each PAGE_SIZES as s}<option value={s}>{s}</option>{/each}
+					</select>
+				</label>
+				<button type="button" onclick={() => setPage(currentPage - 1)} disabled={currentPage <= 1} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.prev}</button>
+				<span>{t().admin.page} {currentPage} {t().admin.of} {pageCount}</span>
+				<button type="button" onclick={() => setPage(currentPage + 1)} disabled={currentPage >= pageCount} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.next}</button>
+			</span>
 		</div>
 	{/if}
 </section>

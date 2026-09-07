@@ -55,14 +55,38 @@ function need(perm: string) {
 app.get('/api/health', (c) => c.json({ ok: true, time: new Date().toISOString() }));
 
 // Categories
-app.get('/api/categories', async (c) => {
+// Shared pagination query shape for admin list endpoints.
+const paginationQuerySchema = z.object({
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce.number().int().min(1).max(100).default(10)
+});
+
+// Categories (public endpoint, also used by the admin categories page)
+const categoriesSortSchema = z.enum(['name_asc', 'name_desc', 'slug_asc', 'slug_desc']).default('name_asc');
+app.get('/api/categories', zValidator('query', paginationQuerySchema.extend({ sort: categoriesSortSchema })), async (c) => {
+	const { sort, page, limit } = c.req.valid('query');
 	const db = createDb(c.env.DB);
-	const rows = await db.select().from(categories).orderBy(categories.name);
-	return c.json(rows);
+	const orderBy =
+		sort === 'name_desc'
+			? desc(categories.name)
+			: sort === 'slug_asc'
+				? categories.slug
+				: sort === 'slug_desc'
+					? desc(categories.slug)
+					: categories.name;
+	const total = (await db.select({ count: sql<number>`count(*)` }).from(categories).get())?.count ?? 0;
+	const items = await db
+		.select()
+		.from(categories)
+		.orderBy(orderBy)
+		.limit(limit)
+		.offset((page - 1) * limit)
+		.all();
+	return c.json({ items, total, page, limit });
 });
 
 // Products list with filter/pagination (showcase)
-const sortSchema = z.enum(['best', 'name_asc', 'price_asc', 'price_desc']).default('best');
+const sortSchema = z.enum(['best', 'name_asc', 'name_desc', 'price_asc', 'price_desc', 'updated_desc', 'updated_asc', 'status_asc', 'status_desc']).default('updated_desc');
 
 const productsQuerySchema = z.object({
 	q: z.string().optional(),
@@ -72,7 +96,7 @@ const productsQuerySchema = z.object({
 	sort: sortSchema,
 	status: z.enum(['active', 'draft', 'all']).default('active'),
 	page: z.coerce.number().min(1).default(1),
-	limit: z.coerce.number().min(1).max(50).default(12)
+	limit: z.coerce.number().min(1).max(100).default(20)
 });
 
 app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => {
@@ -93,7 +117,7 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 			.where(eq(categories.slug, cat))
 			.get();
 		if (catRow?.id) where.push(eq(products.categoryId, catRow.id));
-		else return c.json({ products: [], total: 0, page, limit });
+		else return c.json({ items: [], total: 0, page, limit });
 	}
 	if (minPrice !== undefined) where.push(sql`${products.price} >= ${minPrice}`);
 	if (maxPrice !== undefined) where.push(sql`${products.price} <= ${maxPrice}`);
@@ -112,11 +136,21 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 	const orderBy =
 		sort === 'name_asc'
 			? products.name
-			: sort === 'price_asc'
-				? products.price
-				: sort === 'price_desc'
-					? desc(products.price)
-					: desc(products.createdAt);
+			: sort === 'name_desc'
+				? desc(products.name)
+				: sort === 'price_asc'
+					? products.price
+					: sort === 'price_desc'
+						? desc(products.price)
+						: sort === 'status_asc'
+							? products.status
+							: sort === 'status_desc'
+								? desc(products.status)
+								: sort === 'updated_asc'
+									? products.updatedAt
+									: sort === 'updated_desc'
+										? desc(products.updatedAt)
+										: desc(products.createdAt);
 
 	const rows = await db
 		.select()
@@ -141,7 +175,7 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 		})
 	);
 
-	return c.json({ products: withImages, total, page, limit });
+	return c.json({ items: withImages, total, page, limit });
 });
 
 // Product detail. Unknown slugs fall back to the rename-history table and
@@ -448,14 +482,46 @@ async function resolvePermissionIds(db: ReturnType<typeof createDb>, slugs: stri
 }
 
 // Users
-app.get('/api/admin/users', auth, need('users.manage'), async (c) => {
+const usersSortSchema = z.enum(['created_desc', 'created_asc', 'email_asc', 'email_desc', 'name_asc', 'name_desc', 'status_asc', 'status_desc']).default('created_desc');
+const usersFilterSchema = z.object({
+	email: z.string().trim().min(1).max(254).optional(),
+	name: z.string().trim().min(1).max(200).optional(),
+	status: z.enum(['active', 'suspended']).optional()
+});
+app.get('/api/admin/users', auth, need('users.manage'), zValidator('query', paginationQuerySchema.extend({ sort: usersSortSchema }).extend(usersFilterSchema.shape)), async (c) => {
+	const { sort, page, limit, email, name, status } = c.req.valid('query');
 	const db = createDb(c.env.DB);
-	const all = await db
-		.select({ id: users.id, email: users.email, name: users.name, status: users.status, createdAt: users.createdAt })
-		.from(users)
-		.orderBy(users.email)
-		.all();
-	return c.json(await Promise.all(all.map(async (u) => ({ ...u, roles: await rolesOf(db, u.id) }))));
+	const where = [];
+	if (email) where.push(like(users.email, `%${email}%`));
+	if (name) where.push(like(users.name, `%${name}%`));
+	if (status) where.push(eq(users.status, status));
+	const total = (await db.select({ count: sql<number>`count(*)` }).from(users).where(where.length ? and(...where) : undefined).get())?.count ?? 0;
+	const orderBy =
+		sort === 'created_asc'
+			? users.createdAt
+			: sort === 'created_desc'
+				? desc(users.createdAt)
+				: sort === 'email_asc'
+					? users.email
+					: sort === 'email_desc'
+						? desc(users.email)
+						: sort === 'name_asc'
+							? users.name
+							: sort === 'name_desc'
+								? desc(users.name)
+								: sort === 'status_asc'
+									? users.status
+									: desc(users.status);
+const rows = await db
+			.select({ id: users.id, email: users.email, name: users.name, status: users.status, createdAt: users.createdAt })
+			.from(users)
+			.where(where.length ? and(...where) : undefined)
+			.orderBy(orderBy)
+			.limit(limit)
+			.offset((page - 1) * limit)
+			.all();
+	const items = await Promise.all(rows.map(async (u) => ({ ...u, roles: await rolesOf(db, u.id) })));
+	return c.json({ items, total, page, limit });
 });
 
 app.post(
@@ -538,28 +604,35 @@ app.patch(
 );
 
 // Roles
-app.get('/api/admin/roles', auth, need('roles.manage'), async (c) => {
+app.get('/api/admin/roles', auth, need('roles.manage'), zValidator('query', paginationQuerySchema), async (c) => {
+	const { page, limit } = c.req.valid('query');
 	const db = createDb(c.env.DB);
-	const all = await db.select().from(roles).orderBy(roles.slug).all();
-	return c.json(
-		await Promise.all(
-			all.map(async (r) => {
-				const perms = await db
-					.select({ slug: permissions.slug })
-					.from(rolePermissions)
-					.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-					.where(eq(rolePermissions.roleId, r.id))
-					.orderBy(permissions.slug)
-					.all();
-				const usersCount = await db
-					.select({ count: sql<number>`count(*)` })
-					.from(userRoles)
-					.where(eq(userRoles.roleId, r.id))
-					.get();
-				return { ...r, permissions: perms.map((p) => p.slug), users: usersCount?.count ?? 0 };
-			})
-		)
+	const total = (await db.select({ count: sql<number>`count(*)` }).from(roles).get())?.count ?? 0;
+	const rows = await db
+		.select()
+		.from(roles)
+		.orderBy(roles.slug)
+		.limit(limit)
+		.offset((page - 1) * limit)
+		.all();
+	const items = await Promise.all(
+		rows.map(async (r) => {
+			const perms = await db
+				.select({ slug: permissions.slug })
+				.from(rolePermissions)
+				.innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+				.where(eq(rolePermissions.roleId, r.id))
+				.orderBy(permissions.slug)
+				.all();
+			const usersCount = await db
+				.select({ count: sql<number>`count(*)` })
+				.from(userRoles)
+				.where(eq(userRoles.roleId, r.id))
+				.get();
+			return { ...r, permissions: perms.map((p) => p.slug), users: usersCount?.count ?? 0 };
+		})
 	);
+	return c.json({ items, total, page, limit });
 });
 
 app.post(
@@ -628,9 +701,27 @@ app.delete('/api/admin/roles/:slug', auth, need('roles.manage'), async (c) => {
 });
 
 // Permissions (full CRUD; slugs immutable once created — code enforces them)
-app.get('/api/admin/permissions', auth, need('roles.manage'), async (c) => {
+const permissionsSortSchema = z.enum(['slug_asc', 'slug_desc', 'name_asc', 'name_desc']).default('slug_asc');
+app.get('/api/admin/permissions', auth, need('roles.manage'), zValidator('query', paginationQuerySchema.extend({ sort: permissionsSortSchema })), async (c) => {
+	const { sort, page, limit } = c.req.valid('query');
 	const db = createDb(c.env.DB);
-	return c.json(await db.select().from(permissions).orderBy(permissions.slug).all());
+	const orderBy =
+		sort === 'slug_asc'
+			? permissions.slug
+			: sort === 'slug_desc'
+				? desc(permissions.slug)
+				: sort === 'name_asc'
+					? permissions.name
+					: desc(permissions.name);
+	const total = (await db.select({ count: sql<number>`count(*)` }).from(permissions).get())?.count ?? 0;
+	const items = await db
+		.select()
+		.from(permissions)
+		.orderBy(orderBy)
+		.limit(limit)
+		.offset((page - 1) * limit)
+		.all();
+	return c.json({ items, total, page, limit });
 });
 
 app.post(

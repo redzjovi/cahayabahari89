@@ -4,6 +4,7 @@
 	import { adminSession } from '$lib/admin-session.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
 
 	type ProductRow = {
 		id: number; slug: string; sku: string | null; name: string; description: string | null;
@@ -13,7 +14,7 @@
 	};
 	type CatRow = { id: number; slug: string; name: string };
 
-	let products = $state<ProductRow[]>([]);
+	let items = $state<ProductRow[]>([]);
 	let cats = $state<CatRow[]>([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -22,23 +23,73 @@
 	let fCat = $state('');
 	let fStatus = $state('all');
 	let confirming: string | null = $state(null);
+
 	type SortKey = 'name' | 'updated' | 'price' | 'status';
-	let sortKey = $state<SortKey>('updated');
+	const SORT_API: Record<SortKey, { asc: string; desc: string; default: 'asc' | 'desc' }> = {
+		name: { asc: 'name_asc', desc: 'name_desc', default: 'asc' },
+		updated: { asc: 'updated_asc', desc: 'updated_desc', default: 'desc' },
+		price: { asc: 'price_asc', desc: 'price_desc', default: 'asc' },
+		status: { asc: 'status_asc', desc: 'status_desc', default: 'asc' }
+	};
+	const SORT_FROM_API: Record<string, { key: SortKey; dir: 'asc' | 'desc' }> = {};
+	for (const [k, v] of Object.entries(SORT_API)) {
+		SORT_FROM_API[v.asc] = { key: k as SortKey, dir: 'asc' };
+		SORT_FROM_API[v.desc] = { key: k as SortKey, dir: 'desc' };
+	}
+	const DEFAULT_SORT: SortKey = 'updated';
+
+	let sortKey = $state<SortKey>(DEFAULT_SORT);
 	let sortDir = $state<'asc' | 'desc'>('desc');
+	let currentPage = $state(1);
+	let pageSize = $state<10 | 25 | 50 | 100>(10);
+	let total = $state(0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
 	const canView = $derived(adminSession.can('products.write'));
+
+	function currentSortApi(): string {
+		const m = SORT_API[sortKey];
+		return sortDir === 'asc' ? m.asc : m.desc;
+	}
+
+	function currentSearchHref(): string {
+		return buildSearch({
+			page: currentPage,
+			limit: pageSize,
+			sort: currentSortApi(),
+			q: q.trim(),
+			cat: fCat,
+			status: fStatus
+		});
+	}
 
 	async function load() {
 		loading = true;
 		error = '';
+		const params = new URLSearchParams();
+		params.set('page', String(currentPage));
+		params.set('limit', String(pageSize));
+		params.set('sort', currentSortApi());
+		if (q.trim()) params.set('q', q.trim());
+		if (fCat) params.set('cat', String(fCat));
+		if (fStatus !== 'all') params.set('status', fStatus);
 		try {
 			const [pRes, cRes] = await Promise.all([
-				adminSession.api('/api/products?limit=50&status=all'),
-				adminSession.api('/api/categories')
+				adminSession.api(`/api/products?${params.toString()}`),
+				adminSession.api('/api/categories?page=1&limit=100')
 			]);
 			if (!pRes.ok || !cRes.ok) throw new Error('load');
-			products = ((await pRes.json()) as { products: ProductRow[] }).products;
-			cats = (await cRes.json()) as CatRow[];
+			const data = (await pRes.json()) as { items: ProductRow[]; total: number };
+			items = data.items;
+			total = data.total;
+			cats = ((await cRes.json()) as { items: CatRow[] }).items;
+			// snap back: if the requested page is now empty, jump to page 1
+			if (items.length === 0 && currentPage > 1) {
+				currentPage = 1;
+				await gotoSamePage(currentSearchHref());
+				await load();
+				return;
+			}
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -49,79 +100,22 @@
 	onMount(async () => {
 		adminSession.init();
 		if (!(await adminSession.refresh())) return;
-		if (canView) await load();
-		else loading = false;
-	});
-
-	const filtered = $derived(
-		products.filter((p) => {
-			if (fCat !== '' && p.categoryId !== Number(fCat)) return false;
-			if (fStatus !== 'all' && p.status !== fStatus) return false;
-			const needle = q.trim().toLowerCase();
-			if (!needle) return true;
-			return p.name.toLowerCase().includes(needle) || (p.sku ?? '').toLowerCase().includes(needle);
-		})
-	);
-
-	const sorted = $derived.by(() => {
-		const arr = [...filtered];
-		const dir = sortDir === 'asc' ? 1 : -1;
-		if (sortKey === 'name') {
-			arr.sort((a, b) => a.name.localeCompare(b.name) * dir);
-		} else if (sortKey === 'price') {
-			arr.sort((a, b) => (a.price - b.price) * dir);
-		} else if (sortKey === 'status') {
-			arr.sort((a, b) => a.status.localeCompare(b.status) * dir);
-		} else {
-			arr.sort((a, b) => {
-				const av = a.updatedAt ?? a.createdAt ?? '';
-				const bv = b.updatedAt ?? b.createdAt ?? '';
-				return bv.localeCompare(av);
-			});
+		const qParam = readStringParam('q');
+		if (qParam) q = qParam;
+		const catParam = readStringParam('cat');
+		if (catParam) fCat = catParam;
+		const statusParam = readStringParam('status', ['active', 'draft']);
+		if (statusParam) fStatus = statusParam;
+		const sortParam = readStringParam('sort');
+		const mapped = sortParam ? SORT_FROM_API[sortParam] : null;
+		if (mapped) {
+			sortKey = mapped.key;
+			sortDir = mapped.dir;
 		}
-		return arr;
+		currentPage = readIntParam('page', 1);
+		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
+		await load();
 	});
-
-	function toggleSort(key: SortKey) {
-		if (sortKey === key) {
-			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-		} else {
-			sortKey = key;
-			sortDir = key === 'name' || key === 'status' ? 'asc' : 'desc';
-		}
-	}
-
-	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
-		if (sortKey !== key) return 'none';
-		return sortDir === 'asc' ? 'ascending' : 'descending';
-	}
-
-	function sortLabel(key: SortKey, col: string): string {
-		const raw = sortKey === key
-			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
-			: t().admin.sortBy;
-		return raw.replace('{col}', col);
-	}
-
-	function sortIndicator(key: SortKey): string {
-		if (sortKey !== key) return '↕';
-		return sortDir === 'asc' ? '▲' : '▼';
-	}
-
-	function formatDateTime(value: string | null): string {
-		if (!value) return '—';
-		// Stored as 'YYYY-MM-DD HH:MM:SS' (SQLite datetime('now')). Normalize and format in active locale.
-		const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
-		const d = new Date(iso);
-		if (Number.isNaN(d.getTime())) return value;
-		return d.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: '2-digit',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function apiError(json: unknown): string {
 		const e = (json as { error?: string }).error ?? '';
@@ -147,6 +141,78 @@
 			error = t().admin.loadFail;
 		}
 	}
+
+	function toggleSort(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = SORT_API[key].default;
+		}
+		currentPage = 1;
+		void (async () => {
+			await gotoSamePage(currentSearchHref());
+			await load();
+		})();
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	function sortLabel(key: SortKey, col: string): string {
+		const raw = sortKey === key
+			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
+			: t().admin.sortBy;
+		return raw.replace('{col}', col);
+	}
+
+	function sortIndicator(key: SortKey): string {
+		if (sortKey !== key) return '↕';
+		return sortDir === 'asc' ? '▲' : '▼';
+	}
+
+	function formatDateTime(value: string | null): string {
+		if (!value) return '—';
+		const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return value;
+		return d.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+
+	async function setPage(p: number) {
+		const next = Math.max(1, Math.min(pageCount, p));
+		if (next === currentPage) return;
+		currentPage = next;
+		await gotoSamePage(currentSearchHref());
+		await load();
+	}
+
+	async function setPageSize(s: number) {
+		pageSize = (s as 10 | 25 | 50 | 100);
+		currentPage = 1;
+		await gotoSamePage(currentSearchHref());
+		await load();
+	}
+
+	async function applyFilters() {
+		currentPage = 1;
+		await gotoSamePage(currentSearchHref());
+		await load();
+	}
+
+	let qDebounce: ReturnType<typeof setTimeout> | null = null;
+	function onSearchInput() {
+		if (qDebounce) clearTimeout(qDebounce);
+		qDebounce = setTimeout(() => void applyFilters(), 300);
+	}
 </script>
 
 <svelte:head><title>{t().admin.productsTitle} — Admin</title></svelte:head>
@@ -166,12 +232,12 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
 		<div class="mt-6 flex flex-wrap items-center gap-2">
-			<input bind:value={q} placeholder={t().admin.searchNameSku} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
-			<select bind:value={fCat} aria-label={t().admin.categoryCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
+			<input bind:value={q} oninput={onSearchInput} placeholder={t().admin.searchNameSku} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
+			<select bind:value={fCat} onchange={() => applyFilters()} aria-label={t().admin.categoryCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
 				<option value="">{t().admin.allCategories}</option>
-				{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
+				{#each cats as c}<option value={c.slug}>{c.name}</option>{/each}
 			</select>
-			<select bind:value={fStatus} aria-label={t().admin.statusCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
+			<select bind:value={fStatus} onchange={() => applyFilters()} aria-label={t().admin.statusCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
 				<option value="all">{t().admin.statusAll}</option>
 				<option value="active">{t().admin.active}</option>
 				<option value="draft">{t().admin.draft}</option>
@@ -180,6 +246,8 @@
 
 		{#if loading}
 			<p class="mt-6 text-muted">…</p>
+		{:else if items.length === 0}
+			<p class="mt-6 rounded-card border border-dashed border-line p-6 text-center text-muted">{t().admin.noResults}</p>
 		{:else}
 			<div class="mt-4 overflow-x-auto rounded-card border border-line bg-surface shadow-card">
 				<table class="w-full min-w-[640px] text-left text-sm">
@@ -233,7 +301,7 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-line">
-						{#each sorted as p}
+						{#each items as p}
 							<tr>
 								<td class="px-4 py-2.5">
 									<span class="flex items-center gap-3">
@@ -274,7 +342,20 @@
 					</tbody>
 				</table>
 			</div>
-			<p class="mt-3 text-sm text-muted">{sorted.length} / {products.length}</p>
+			<div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
+				<span>{items.length} / {total}</span>
+				<span class="ml-auto flex items-center gap-2">
+					<label class="flex items-center gap-1.5">
+						<span>{t().admin.perPage}</span>
+						<select value={pageSize} onchange={(e) => setPageSize(Number((e.currentTarget as HTMLSelectElement).value))} class="rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold text-ink">
+							{#each PAGE_SIZES as s}<option value={s}>{s}</option>{/each}
+						</select>
+					</label>
+					<button type="button" onclick={() => setPage(currentPage - 1)} disabled={currentPage <= 1} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.prev}</button>
+					<span>{t().admin.page} {currentPage} {t().admin.of} {pageCount}</span>
+					<button type="button" onclick={() => setPage(currentPage + 1)} disabled={currentPage >= pageCount} class="rounded-full border border-line bg-surface px-3 py-1 text-xs font-bold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40">{t().admin.next}</button>
+				</span>
+			</div>
 		{/if}
 	{/if}
 </section>
