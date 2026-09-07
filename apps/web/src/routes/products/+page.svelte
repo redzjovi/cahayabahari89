@@ -93,19 +93,6 @@
 						{/each}
 					</div>
 				</fieldset>
-				<fieldset>
-					<legend class="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t().katalog.price}</legend>
-					<div class="mt-2.5 grid gap-2">
-						<label class="grid gap-1 text-xs font-semibold text-muted">
-							{t().katalog.priceMin}
-							<input type="number" name="min" min="0" step="1000" value={data.min ?? ''} placeholder="0" class="rounded-lg border px-3 py-1.5 text-sm font-normal text-ink" />
-						</label>
-						<label class="grid gap-1 text-xs font-semibold text-muted">
-							{t().katalog.priceMax}
-							<input type="number" name="max" min="0" step="1000" value={data.max ?? ''} placeholder="500000" class="rounded-lg border px-3 py-1.5 text-sm font-normal text-ink" />
-						</label>
-					</div>
-				</fieldset>
 				<div class="flex gap-2">
 					<button type="submit" class="flex-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:brightness-110">{t().katalog.apply}</button>
 					<a href={pageUrl({ q: undefined, cat: undefined, min: undefined, max: undefined, sort: 'best' })} class="rounded-full border border-line px-4 py-2 text-sm font-bold transition hover:border-brand">{t().katalog.reset}</a>
@@ -117,9 +104,7 @@
 		<div class="min-w-0">
 			<form method="GET" action={localize('/products', locale.current)} class="flex flex-wrap items-center gap-2">
 				<input type="hidden" name="cat" value={data.cat ?? ''} />
-				<input type="hidden" name="min" value={data.min ?? ''} />
-				<input type="hidden" name="max" value={data.max ?? ''} />
-				<input name="q" value={data.q ?? ''} placeholder={t().katalog.search} class="min-w-0 flex-1 rounded-full border px-4 py-2 text-sm" />
+				<input name="q" value={data.q ?? ''} placeholder={t().katalog.search} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1" />
 				<label class="flex items-center gap-2 text-sm font-semibold text-muted">
 					{t().katalog.sortBy}
 					<select name="sort" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
