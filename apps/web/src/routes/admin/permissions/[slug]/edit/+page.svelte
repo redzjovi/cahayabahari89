@@ -2,6 +2,7 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -74,13 +75,10 @@
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
-			<div class="grid gap-1.5">
-				<span class="text-sm font-semibold">{t().admin.permissionSlug}</span>
-				<span class="rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slug}</span>
-			</div>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.permissionName}<input bind:value={pName} required minlength="2" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<p class="text-xs text-muted">{t().admin.permissionsNote}</p>
-			<div class="flex gap-2">
+			<Field label={t().admin.permissionSlug}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slug}</span></Field>
+			<Field label={t().admin.permissionName} required><input bind:value={pName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<p class="text-xs text-muted sm:pl-[196px]">{t().admin.permissionsNote}</p>
+			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.save}</button>
 				<a href={localize('/admin/permissions', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>

@@ -2,6 +2,7 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -65,19 +66,18 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
-		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card sm:grid-cols-2">
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.email}<input type="email" bind:value={fEmail} required class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.name}<input bind:value={fName} required minlength="2" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.password}<input type="password" bind:value={fPassword} required minlength="8" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<fieldset class="grid gap-1.5 text-sm font-semibold">
-				{t().admin.editRoles}
-				<div class="flex flex-wrap gap-3 font-normal">
+		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
+			<Field label={t().admin.email} required><input type="email" bind:value={fEmail} required class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.name} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.password} required><input type="password" bind:value={fPassword} required minlength="8" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.editRoles}>
+				<span class="flex flex-wrap gap-3">
 					{#each roles as r}
-						<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" value={r.slug} checked={fRoles.includes(r.slug)} onchange={(e) => (fRoles = e.currentTarget.checked ? [...fRoles, r.slug] : fRoles.filter((x) => x !== r.slug))} class="accent-[var(--brand)]" />{r.slug}</label>
+						<label class="flex cursor-pointer items-center gap-1.5 text-sm font-normal"><input type="checkbox" value={r.slug} checked={fRoles.includes(r.slug)} onchange={(e) => (fRoles = e.currentTarget.checked ? [...fRoles, r.slug] : fRoles.filter((x) => x !== r.slug))} class="accent-[var(--brand)]" />{r.slug}</label>
 					{/each}
-				</div>
-			</fieldset>
-			<div class="flex gap-2 sm:col-span-2">
+				</span>
+			</Field>
+			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.create}</button>
 				<a href={localize('/admin/users', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>

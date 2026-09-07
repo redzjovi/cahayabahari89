@@ -2,6 +2,7 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -76,25 +77,25 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
-		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card sm:grid-cols-2">
-			<label class="grid gap-1.5 text-sm font-semibold">slug<input bind:value={fSlug} required minlength="2" class="rounded-lg border px-4 py-2.5 font-mono font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.productName}<input bind:value={fName} required minlength="2" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.sku}<input bind:value={fSku} class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.priceIdr}<input type="number" bind:value={fPrice} required min="0" step="1000" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.categoryCol}
-				<select bind:value={fCat} class="rounded-lg border px-4 py-2.5 font-normal">
+		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
+			<Field label="slug" required><input bind:value={fSlug} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-mono font-normal" /></Field>
+			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.sku}><input bind:value={fSku} class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.priceIdr} required><input type="number" bind:value={fPrice} required min="0" step="1000" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.categoryCol}>
+				<select bind:value={fCat} class="w-full rounded-lg border px-4 py-2.5 font-normal">
 					<option value="">—</option>
 					{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
 				</select>
-			</label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.statusCol}
-				<select bind:value={fStatus} class="rounded-lg border px-4 py-2.5 font-normal">
+			</Field>
+			<Field label={t().admin.statusCol}>
+				<select bind:value={fStatus} class="w-full rounded-lg border px-4 py-2.5 font-normal">
 					<option value="active">{t().admin.active}</option>
 					<option value="draft">{t().admin.draft}</option>
 				</select>
-			</label>
-			<label class="grid gap-1.5 text-sm font-semibold sm:col-span-2">{t().admin.description}<textarea bind:value={fDesc} rows="3" class="rounded-lg border px-4 py-2.5 font-normal"></textarea></label>
-			<div class="flex gap-2 sm:col-span-2">
+			</Field>
+			<Field label={t().admin.description}><textarea bind:value={fDesc} rows="3" class="w-full rounded-lg border px-4 py-2.5 font-normal"></textarea></Field>
+			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.create}</button>
 				<a href={localize('/admin/products', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>

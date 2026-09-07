@@ -2,6 +2,7 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -64,19 +65,17 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
-		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card sm:grid-cols-2">
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.roleSlug}<input bind:value={rSlug} required minlength="2" class="rounded-lg border px-4 py-2.5 font-mono font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.roleName}<input bind:value={rName} required minlength="2" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<fieldset class="grid gap-1.5 text-sm font-semibold sm:col-span-2">
-				{t().admin.permissionsTitle}
-				<div class="flex flex-wrap gap-3 font-normal">
+		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
+			<Field label={t().admin.roleSlug} required hint={t().admin.roleSlugHint}><input bind:value={rSlug} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-mono font-normal" /></Field>
+			<Field label={t().admin.roleName} required><input bind:value={rName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.permissionsTitle}>
+				<span class="flex flex-wrap gap-3">
 					{#each perms as p}
-						<label class="flex cursor-pointer items-center gap-1.5 text-sm"><input type="checkbox" checked={rPerms.includes(p.slug)} onchange={(e) => (rPerms = e.currentTarget.checked ? [...rPerms, p.slug] : rPerms.filter((x) => x !== p.slug))} class="accent-[var(--brand)]" />{p.slug}</label>
+						<label class="flex cursor-pointer items-center gap-1.5 text-sm font-normal"><input type="checkbox" checked={rPerms.includes(p.slug)} onchange={(e) => (rPerms = e.currentTarget.checked ? [...rPerms, p.slug] : rPerms.filter((x) => x !== p.slug))} class="accent-[var(--brand)]" />{p.slug}</label>
 					{/each}
-				</div>
-			</fieldset>
-			<p class="text-xs text-muted sm:col-span-2">{t().admin.roleSlugHint}</p>
-			<div class="flex gap-2 sm:col-span-2">
+				</span>
+			</Field>
+			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.create}</button>
 				<a href={localize('/admin/roles', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>

@@ -2,6 +2,7 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
+	import Field from '$lib/components/Field.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -153,40 +154,41 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">404</p>
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
-		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card sm:grid-cols-2">
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.productName}<input bind:value={fName} required minlength="2" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.sku}<input bind:value={fSku} class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.priceIdr}<input type="number" bind:value={fPrice} required min="0" step="1000" class="rounded-lg border px-4 py-2.5 font-normal" /></label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.categoryCol}
-				<select bind:value={fCat} class="rounded-lg border px-4 py-2.5 font-normal">
+		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
+			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.sku}><input bind:value={fSku} class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.priceIdr} required><input type="number" bind:value={fPrice} required min="0" step="1000" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.categoryCol}>
+				<select bind:value={fCat} class="w-full rounded-lg border px-4 py-2.5 font-normal">
 					<option value="">—</option>
 					{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
 				</select>
-			</label>
-			<label class="grid gap-1.5 text-sm font-semibold">{t().admin.statusCol}
-				<select bind:value={fStatus} class="rounded-lg border px-4 py-2.5 font-normal">
+			</Field>
+			<Field label={t().admin.statusCol}>
+				<select bind:value={fStatus} class="w-full rounded-lg border px-4 py-2.5 font-normal">
 					<option value="active">{t().admin.active}</option>
 					<option value="draft">{t().admin.draft}</option>
 				</select>
-			</label>
-			<label class="grid gap-1.5 text-sm font-semibold sm:col-span-2">{t().admin.description}<textarea bind:value={fDesc} rows="3" class="rounded-lg border px-4 py-2.5 font-normal"></textarea></label>
-			<fieldset class="grid gap-2 text-sm font-semibold sm:col-span-2">
-				{t().admin.attachImages}
-				<div class="flex flex-wrap gap-2">
-					{#each editImages as img}
-						<span class="relative inline-block overflow-hidden rounded-lg border border-line">
-							{#if img.url}<img src={img.url} alt={img.alt ?? ''} class="h-16 w-20 object-cover" />{:else}<span class="flex h-16 w-20 items-center justify-center bg-accent-soft text-[10px] text-accent-strong">no url</span>{/if}
-							<button type="button" onclick={() => removeImage(img.id)} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">×</button>
-						</span>
-					{/each}
-				</div>
-				<div class="flex flex-wrap items-center gap-2">
-					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={uploadFiles} class="text-sm font-normal" />
-					<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
-					{#if uploading}<span class="text-xs text-muted">…</span>{/if}
-				</div>
-			</fieldset>
-			<div class="flex gap-2 sm:col-span-2">
+			</Field>
+			<Field label={t().admin.description}><textarea bind:value={fDesc} rows="3" class="w-full rounded-lg border px-4 py-2.5 font-normal"></textarea></Field>
+			<Field label={t().admin.attachImages}>
+				<span class="grid gap-2">
+					<span class="flex flex-wrap gap-2">
+						{#each editImages as img}
+							<span class="relative inline-block overflow-hidden rounded-lg border border-line">
+								{#if img.url}<img src={img.url} alt={img.alt ?? ''} class="h-16 w-20 object-cover" />{:else}<span class="flex h-16 w-20 items-center justify-center bg-accent-soft text-[10px] text-accent-strong">no url</span>{/if}
+								<button type="button" onclick={() => removeImage(img.id)} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">×</button>
+							</span>
+						{/each}
+					</span>
+					<span class="flex flex-wrap items-center gap-2">
+						<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={uploadFiles} class="text-sm font-normal" />
+						<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
+						{#if uploading}<span class="text-xs text-muted">…</span>{/if}
+					</span>
+				</span>
+			</Field>
+			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.save}</button>
 				<a href={localize('/admin/products', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>
