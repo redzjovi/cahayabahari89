@@ -44,6 +44,7 @@
 	<link rel="alternate" hreflang="x-default" href={alternates.id} />
 </svelte:head>
 
+{#if !isAdmin}
 <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
 	<nav class="content-wrap flex items-center justify-between gap-3 py-3">
 		<a href={localize('/', data.locale)} class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
@@ -56,7 +57,7 @@
 			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
 		<div class="hidden items-center gap-2 md:flex">
-			{#if !isAdmin}<LangToggle />{/if}
+			<LangToggle />
 			<ThemePicker />
 		</div>
 		<button
@@ -77,17 +78,19 @@
 				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
-				{#if !isAdmin}<LangToggle />{/if}
+				<LangToggle />
 				<ThemePicker />
 			</div>
 		</div>
 	{/if}
 </header>
+{/if}
 
 <main>
 	{@render children()}
 </main>
 
+{#if !isAdmin}
 <footer class="mt-16 bg-brand text-brand-ink">
 	<div class="content-wrap grid gap-8 py-8 sm:grid-cols-2">
 		<div>
@@ -124,3 +127,4 @@
 		</div>
 	</div>
 </footer>
+{/if}

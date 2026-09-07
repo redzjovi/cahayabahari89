@@ -64,7 +64,7 @@
 
 <svelte:head><title>{t().admin.permissionsTitle} — Admin</title></svelte:head>
 
-<section class="content-wrap py-10">
+<section class="px-4 py-10 lg:px-8">
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<h1 class="font-display text-3xl font-bold">{t().admin.permissionsTitle}</h1>
 		<button type="button" onclick={() => goto(localize('/admin/permissions/new', locale.current))} class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink transition hover:brightness-110">
