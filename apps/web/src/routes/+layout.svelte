@@ -86,6 +86,12 @@
 				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
+				<a href={localize('/cart', data.locale)} onclick={() => (menuOpen = false)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand">
+					<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+						<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+					<span class="text-sm">{$cartQty}</span>
+				</a>
 				<LangToggle />
 				<ThemePicker />
 			</div>
