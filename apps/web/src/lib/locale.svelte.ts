@@ -120,7 +120,22 @@ const en = {
 		send: 'Send inquiry',
 		ok: 'Thank you! Your inquiry is received — we reply within one business day.',
 		fail: 'Failed to send. Please try again.',
-		direct: 'Prefer WhatsApp? Chat with sales directly.'
+		direct: 'Prefer WhatsApp? Chat directly with sales.'
+	},
+	cart: {
+		title: 'Shopping Cart',
+		empty: 'Your cart is empty.',
+		addToCart: 'Add to Cart',
+		remove: 'Remove',
+		clearCart: 'Clear Cart',
+		generateOrder: 'Generate WhatsApp Order',
+		items: 'items',
+		total: 'Total',
+		qty: 'Qty',
+		orderViaWhatsApp: 'Order via WhatsApp',
+		backToCatalog: 'Back to catalog',
+		viewCart: 'View Cart',
+		inCart: 'in cart'
 	},
 	admin: {
 		loginTitle: 'Admin sign in',
@@ -333,6 +348,21 @@ const id: Dict = {
 		ok: 'Terima kasih! Inquiry Anda diterima — kami balas maksimal satu hari kerja.',
 		fail: 'Gagal mengirim. Silakan coba lagi.',
 		direct: 'Lebih suka WhatsApp? Chat langsung dengan sales.'
+	},
+	cart: {
+		title: 'Keranjang Belanja',
+		empty: 'Keranjang Anda kosong.',
+		addToCart: 'Tambah ke Keranjang',
+		remove: 'Hapus',
+		clearCart: 'Bersihkan Keranjang',
+		generateOrder: 'Buat Pesanan WhatsApp',
+		items: 'barang',
+		total: 'Total',
+		qty: 'Qty',
+		orderViaWhatsApp: 'Pesan via WhatsApp',
+		backToCatalog: 'Kembali ke katalog',
+		viewCart: 'Lihat Keranjang',
+		inCart: 'dalam keranjang'
 	},
 	admin: {
 		loginTitle: 'Masuk admin',

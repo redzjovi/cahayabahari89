@@ -3,6 +3,7 @@
 	import { localize, parseLocalized } from '$lib/routes';
 	import { page } from '$app/state';
 	import { reveal } from '$lib/reveal';
+	import { cart, buildSingleWhatsAppLink } from '$lib/cart.svelte';
 	import ProductCard from '$lib/components/ProductCard.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
 
@@ -19,13 +20,20 @@
 		document.getElementById(`thumb-${n}`)?.focus();
 	}
 
-	const WA_NUMBER = '6287877118199';
-	const waLink = $derived(
-		`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hello, I'm interested in ${p.name} (${p.sku ?? p.slug})`)}`
-	);
+	const waLink = $derived(buildSingleWhatsAppLink(p.name, p.sku ?? p.slug));
 
 	function idr(n: number) {
 		return n.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US');
+	}
+
+	function addToCart() {
+		const firstImage = gallery[0]?.url ?? '';
+		cart.add({
+			slug: p.slug,
+			name: p.name,
+			price: p.price,
+			imageUrl: firstImage
+		});
 	}
 
 	/**
@@ -111,7 +119,8 @@
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 
 			<div class="mt-5 flex flex-wrap gap-3">
-				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">WhatsApp Order</a>
+				<button onclick={addToCart} class="rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110">{t().cart.addToCart}</button>
+				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">{t().cart.orderViaWhatsApp}</a>
 			</div>
 
 			<div class="mt-6 overflow-hidden rounded-card border border-line">

@@ -2,12 +2,24 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize } from '$lib/routes';
 	import { reveal } from '$lib/reveal';
+	import { cart } from '$lib/cart.svelte';
 	import PhotoPlaceholder from './PhotoPlaceholder.svelte';
 
 	let { product, badge = false }: { product: any; badge?: boolean } = $props();
 
 	function idr(n: number) {
 		return n.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US');
+	}
+
+	function addToCart(e: Event) {
+		e.preventDefault();
+		e.stopPropagation();
+		cart.add({
+			slug: product.slug,
+			name: product.name,
+			price: product.price,
+			imageUrl: product.image?.url ?? ''
+		});
 	}
 </script>
 
@@ -29,5 +41,8 @@
 		{#if product.description}
 			<p class="line-clamp-2 text-sm text-muted">{product.description}</p>
 		{/if}
+		<button onclick={addToCart} class="mt-2 rounded-full bg-brand px-4 py-2 font-bold text-brand-ink text-sm transition hover:brightness-110">
+			{t().cart.addToCart}
+		</button>
 	</div>
 </a>
