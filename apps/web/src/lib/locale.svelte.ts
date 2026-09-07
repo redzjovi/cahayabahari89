@@ -181,6 +181,7 @@ const en = {
 		description: 'Description',
 		statusCol: 'Status',
 		draft: 'Draft',
+		statusAll: 'All statuses',
 		confirmDeleteProduct: 'Delete this product and its images?',
 		categoriesTitle: 'Categories',
 		newCategory: 'New category',
@@ -190,7 +191,10 @@ const en = {
 		attachImages: 'Images',
 		uploadImages: 'Upload images',
 		removeImage: 'Remove',
-		uploadHint: 'JPEG/PNG/WebP/AVIF, max 5 MB each.'
+		uploadHint: 'JPEG/PNG/WebP/AVIF, max 5 MB each.',
+		uploadPartial: 'Product created, but image upload failed. Attach them on the edit page.',
+		slugAutoNote: 'Auto-generated on save as name + product ID.',
+		invalidName: 'Name must contain latin letters or digits.'
 	}
 };
 
@@ -374,6 +378,7 @@ const id: Dict = {
 		description: 'Deskripsi',
 		statusCol: 'Status',
 		draft: 'Draf',
+		statusAll: 'Semua status',
 		confirmDeleteProduct: 'Hapus produk ini beserta fotonya?',
 		categoriesTitle: 'Kategori',
 		newCategory: 'Kategori baru',
@@ -383,7 +388,10 @@ const id: Dict = {
 		attachImages: 'Foto',
 		uploadImages: 'Unggah foto',
 		removeImage: 'Hapus',
-		uploadHint: 'JPEG/PNG/WebP/AVIF, maks 5 MB per file.'
+		uploadHint: 'JPEG/PNG/WebP/AVIF, maks 5 MB per file.',
+		uploadPartial: 'Produk dibuat, tetapi unggah foto gagal. Lampirkan di halaman ubah.',
+		slugAutoNote: 'Dibuat otomatis saat simpan sebagai nama + ID produk.',
+		invalidName: 'Nama harus mengandung huruf latin atau angka.'
 	}
 };
 

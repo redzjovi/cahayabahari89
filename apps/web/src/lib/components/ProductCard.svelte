@@ -24,6 +24,7 @@
 	</div>
 	<div class="flex flex-1 flex-col gap-1 p-4">
 		<h3 class="font-display text-lg font-bold leading-snug group-hover:text-brand">{product.name}</h3>
+		<p class="font-mono text-xs font-normal text-muted">{product.slug}</p>
 		<p class="text-lg font-extrabold text-accent-strong">Rp {idr(product.price)}<span class="text-xs font-medium text-muted">{t().katalog.per}</span></p>
 		{#if product.description}
 			<p class="line-clamp-2 text-sm text-muted">{product.description}</p>

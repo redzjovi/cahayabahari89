@@ -4,7 +4,8 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { eq, like, and, desc, sql } from 'drizzle-orm';
 import { createDb } from './db';
-import { products, categories, productImages, leads, users, roles, permissions, userRoles, rolePermissions } from './db/schema';
+import { products, categories, productImages, leads, users, roles, permissions, userRoles, rolePermissions, productSlugRedirects } from './db/schema';
+import { slugify, productSlug } from '../slug';
 import { hashPassword } from './auth';
 import {
 	authenticate,
@@ -69,12 +70,13 @@ const productsQuerySchema = z.object({
 	minPrice: z.coerce.number().int().min(0).optional(),
 	maxPrice: z.coerce.number().int().min(0).optional(),
 	sort: sortSchema,
+	status: z.enum(['active', 'draft', 'all']).default('active'),
 	page: z.coerce.number().min(1).default(1),
 	limit: z.coerce.number().min(1).max(50).default(12)
 });
 
 app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => {
-	const { q, cat, minPrice, maxPrice, sort, page, limit } = c.req.valid('query');
+	const { q, cat, minPrice, maxPrice, sort, status, page, limit } = c.req.valid('query');
 	if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
 		return c.json({ error: 'minPrice must not exceed maxPrice' }, 400);
 	}
@@ -95,7 +97,7 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 	}
 	if (minPrice !== undefined) where.push(sql`${products.price} >= ${minPrice}`);
 	if (maxPrice !== undefined) where.push(sql`${products.price} <= ${maxPrice}`);
-	where.push(eq(products.status, 'active'));
+	if (status !== 'all') where.push(eq(products.status, status));
 
 	// count
 	const countRes = await db
@@ -142,12 +144,21 @@ app.get('/api/products', zValidator('query', productsQuerySchema), async (c) => 
 	return c.json({ products: withImages, total, page, limit });
 });
 
-// Product detail
+// Product detail. Unknown slugs fall back to the rename-history table and
+// 301 to the current slug URL (fetch follows; SvelteKit load converts to a
+// page-level 301 — see products/[slug]/+page.server.ts).
 app.get('/api/products/:slug', async (c) => {
 	const slug = c.req.param('slug');
 	const db = createDb(c.env.DB);
 	const product = await db.select().from(products).where(eq(products.slug, slug)).get();
-	if (!product) return c.json({ error: 'not found' }, 404);
+	if (!product) {
+		const hit = await db.select().from(productSlugRedirects).where(eq(productSlugRedirects.oldSlug, slug)).get();
+		if (hit) {
+			const current = await db.select({ slug: products.slug }).from(products).where(eq(products.id, hit.productId)).get();
+			if (current) return c.redirect(`/api/products/${current.slug}`, 301);
+		}
+		return c.json({ error: 'not found' }, 404);
+	}
 	const images = await db
 		.select()
 		.from(productImages)
@@ -178,7 +189,9 @@ app.post('/api/contact', zValidator('json', contactSchema), async (c) => {
 	return c.json({ ok: true }, 201);
 });
 
-// Admin create product (RBAC: products.write)
+// Admin create product (RBAC: products.write).
+// Slug is server-generated as slugify(name)-<id>: insert with a temp slug,
+// then finalize once the autoincrement id is known. Inherently unique.
 app.post(
 	'/api/admin/products',
 	auth,
@@ -186,10 +199,9 @@ app.post(
 	zValidator(
 		'json',
 		z.object({
-			slug: z.string().min(2),
 			sku: z.string().optional(),
-			name: z.string().min(2),
-			description: z.string().optional(),
+			name: z.string().min(2).max(150),
+			description: z.string().max(5000).optional(),
 			price: z.number().int().min(0),
 			categoryId: z.number().int().optional(),
 			status: z.enum(['active', 'draft']).default('active')
@@ -197,17 +209,29 @@ app.post(
 	),
 	async (c) => {
 		const data = c.req.valid('json');
+		if (slugify(data.name) === '') return c.json({ error: 'name must contain latin letters or digits' }, 400);
 		const db = createDb(c.env.DB);
 		if (data.categoryId !== undefined && data.categoryId !== null) {
 			const cat = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, data.categoryId)).get();
 			if (!cat) return c.json({ error: 'unknown categoryId' }, 400);
 		}
-		const res = await db.insert(products).values(data).returning();
-		return c.json(res[0], 201);
+		const [inserted] = await db
+			.insert(products)
+			.values({ ...data, slug: `tmp-${crypto.randomUUID()}` })
+			.returning({ id: products.id });
+		const [row] = await db
+			.update(products)
+			.set({ slug: productSlug(data.name, inserted.id) })
+			.where(eq(products.id, inserted.id))
+			.returning();
+		return c.json(row, 201);
 	}
 );
 
-// Admin: update product (RBAC: products.write)
+// Admin: update product (RBAC: products.write).
+// A name change regenerates the slug (name-id); the old slug is kept in
+// product_slug_redirects so existing links 301 to the new URL. Slugs of
+// untouched names stay frozen.
 app.patch(
 	'/api/admin/products/:slug',
 	auth,
@@ -227,13 +251,27 @@ app.patch(
 		const slug = c.req.param('slug');
 		const patch = c.req.valid('json');
 		const db = createDb(c.env.DB);
-		const existing = await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get();
+		const existing = await db.select().from(products).where(eq(products.slug, slug)).get();
 		if (!existing) return c.json({ error: 'not found' }, 404);
+		if (patch.name !== undefined && slugify(patch.name) === '') {
+			return c.json({ error: 'name must contain latin letters or digits' }, 400);
+		}
 		if (patch.categoryId !== undefined && patch.categoryId !== null) {
 			const cat = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, patch.categoryId)).get();
 			if (!cat) return c.json({ error: 'unknown categoryId' }, 400);
 		}
-		const [updated] = await db.update(products).set(patch).where(eq(products.id, existing.id)).returning();
+		let nextSlug = slug;
+		if (patch.name !== undefined && patch.name !== existing.name) {
+			nextSlug = productSlug(patch.name, existing.id);
+			if (nextSlug !== slug) {
+				await db.insert(productSlugRedirects).values({ oldSlug: slug, productId: existing.id }).onConflictDoNothing();
+			}
+		}
+		const [updated] = await db
+			.update(products)
+			.set({ ...patch, slug: nextSlug })
+			.where(eq(products.id, existing.id))
+			.returning();
 		return c.json(updated);
 	}
 );

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize, parseLocalized } from '$lib/routes';
+	import { page } from '$app/state';
 	import { reveal } from '$lib/reveal';
 	import ProductCard from '$lib/components/ProductCard.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
@@ -54,6 +55,7 @@
 	<meta name="description" content={p.description ?? p.name} />
 	<meta property="og:title" content={p.name} />
 	<meta property="og:description" content={p.description ?? p.name} />
+	<link rel="canonical" href="{page.url.origin}{localize(`/products/${p.slug}`, locale.current)}" />
 </svelte:head>
 
 <section class="content-wrap pb-6 pt-8">
@@ -104,6 +106,7 @@
 				<a href={localize(`/products?cat=${p.category.slug}`, locale.current)} class="inline-block rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-strong">{p.category.name}</a>
 			{/if}
 			<h1 class="mt-3 font-display text-4xl font-bold tracking-tight">{p.name}</h1>
+			<p class="mt-1 font-mono text-sm font-normal text-muted">{p.slug}</p>
 			<p class="mt-2 font-display text-3xl font-bold text-brand">Rp {idr(p.price)}<span class="text-base font-medium text-muted">{t().katalog.per}</span></p>
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 

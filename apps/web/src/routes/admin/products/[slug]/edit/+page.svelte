@@ -91,7 +91,13 @@
 				error = apiError(await res.json());
 				return;
 			}
-			await goto(localize('/admin/products', locale.current));
+			const updated = (await res.json()) as { slug: string };
+			// A rename changes this page's own URL — follow it, else back to list.
+			if (updated.slug && updated.slug !== slug) {
+				await goto(localize(`/admin/products/${updated.slug}/edit`, locale.current));
+			} else {
+				await goto(localize('/admin/products', locale.current));
+			}
 		} catch {
 			error = t().admin.loadFail;
 		}
@@ -155,22 +161,6 @@
 	{:else}
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
-			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
-			<Field label={t().admin.sku}><input bind:value={fSku} class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
-			<Field label={t().admin.priceIdr} required><input type="number" bind:value={fPrice} required min="0" step="1000" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
-			<Field label={t().admin.categoryCol}>
-				<select bind:value={fCat} class="w-full rounded-lg border px-4 py-2.5 font-normal">
-					<option value="">—</option>
-					{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
-				</select>
-			</Field>
-			<Field label={t().admin.statusCol}>
-				<select bind:value={fStatus} class="w-full rounded-lg border px-4 py-2.5 font-normal">
-					<option value="active">{t().admin.active}</option>
-					<option value="draft">{t().admin.draft}</option>
-				</select>
-			</Field>
-			<Field label={t().admin.description}><textarea bind:value={fDesc} rows="3" class="w-full rounded-lg border px-4 py-2.5 font-normal"></textarea></Field>
 			<Field label={t().admin.attachImages}>
 				<span class="grid gap-2">
 					<span class="flex flex-wrap gap-2">
@@ -187,6 +177,23 @@
 						{#if uploading}<span class="text-xs text-muted">…</span>{/if}
 					</span>
 				</span>
+			</Field>
+			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label="Slug" hint={t().admin.slugAutoNote}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slug}</span></Field>
+			<Field label={t().admin.categoryCol}>
+				<select bind:value={fCat} class="w-full rounded-lg border px-4 py-2.5 font-normal">
+					<option value="">—</option>
+					{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
+				</select>
+			</Field>
+			<Field label={t().admin.description}><textarea bind:value={fDesc} rows="3" class="w-full rounded-lg border px-4 py-2.5 font-normal"></textarea></Field>
+			<Field label={t().admin.priceIdr} required><input type="number" bind:value={fPrice} required min="0" step="1000" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.sku}><input bind:value={fSku} class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
+			<Field label={t().admin.statusCol}>
+				<select bind:value={fStatus} class="w-full rounded-lg border px-4 py-2.5 font-normal">
+					<option value="active">{t().admin.active}</option>
+					<option value="draft">{t().admin.draft}</option>
+				</select>
 			</Field>
 			<div class="flex gap-2 sm:pl-[196px]">
 				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.save}</button>

@@ -48,6 +48,17 @@ export const productImages = sqliteTable(
 	(table) => [index('product_images_product_idx').on(table.productId)]
 );
 
+export const productSlugRedirects = sqliteTable(
+	'product_slug_redirects',
+	{
+		oldSlug: text('old_slug').primaryKey(),
+		productId: integer('product_id')
+			.notNull()
+			.references(() => products.id, { onDelete: 'cascade' })
+	},
+	(table) => [index('product_slug_redirects_product_idx').on(table.productId)]
+);
+
 export const leads = sqliteTable('leads', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	name: text('name').notNull(),

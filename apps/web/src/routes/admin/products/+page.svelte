@@ -18,6 +18,8 @@
 	let error = $state('');
 	let notice = $state('');
 	let q = $state('');
+	let fCat = $state('');
+	let fStatus = $state('all');
 	let confirming: string | null = $state(null);
 
 	const canView = $derived(adminSession.can('products.write'));
@@ -27,7 +29,7 @@
 		error = '';
 		try {
 			const [pRes, cRes] = await Promise.all([
-				adminSession.api('/api/products?limit=50'),
+				adminSession.api('/api/products?limit=50&status=all'),
 				adminSession.api('/api/categories')
 			]);
 			if (!pRes.ok || !cRes.ok) throw new Error('load');
@@ -49,6 +51,8 @@
 
 	const filtered = $derived(
 		products.filter((p) => {
+			if (fCat !== '' && p.categoryId !== Number(fCat)) return false;
+			if (fStatus !== 'all' && p.status !== fStatus) return false;
 			const needle = q.trim().toLowerCase();
 			if (!needle) return true;
 			return p.name.toLowerCase().includes(needle) || p.slug.includes(needle) || (p.sku ?? '').toLowerCase().includes(needle);
@@ -97,22 +101,28 @@
 	{#if !canView}
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
-		<div class="mt-6 flex max-w-xs items-center gap-2">
-			<input bind:value={q} placeholder={t().admin.productName} class="min-w-0 flex-1 rounded-full border px-4 py-2 text-sm" />
+		<div class="mt-6 flex flex-wrap items-center gap-2">
+			<input bind:value={q} placeholder={t().admin.productName} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
+			<select bind:value={fCat} aria-label={t().admin.categoryCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
+				<option value="">{t().katalog.catAll}</option>
+				{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
+			</select>
+			<select bind:value={fStatus} aria-label={t().admin.statusCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
+				<option value="all">{t().admin.statusAll}</option>
+				<option value="active">{t().admin.active}</option>
+				<option value="draft">{t().admin.draft}</option>
+			</select>
 		</div>
 
 		{#if loading}
 			<p class="mt-6 text-muted">…</p>
 		{:else}
 			<div class="mt-4 overflow-x-auto rounded-card border border-line bg-surface shadow-card">
-				<table class="w-full min-w-[760px] text-left text-sm">
+				<table class="w-full min-w-[640px] text-left text-sm">
 					<thead>
 						<tr class="border-b border-line text-xs uppercase tracking-wider text-muted">
 							<th class="px-4 py-3">{t().admin.productName}</th>
-							<th class="px-4 py-3">{t().admin.sku}</th>
-							<th class="px-4 py-3">{t().admin.categoryCol}</th>
 							<th class="px-4 py-3">{t().admin.priceIdr}</th>
-							<th class="px-4 py-3">{t().admin.imagesCol}</th>
 							<th class="px-4 py-3">{t().admin.statusCol}</th>
 							<th class="px-4 py-3">{t().admin.actions}</th>
 						</tr>
@@ -120,11 +130,21 @@
 					<tbody class="divide-y divide-line">
 						{#each filtered as p}
 							<tr>
-								<td class="px-4 py-2.5 font-semibold">{p.name}<span class="block font-mono text-xs font-normal text-muted">{p.slug}</span></td>
-								<td class="px-4 py-2.5 font-mono text-xs">{p.sku ?? '—'}</td>
-								<td class="px-4 py-2.5">{cats.find((c) => c.id === p.categoryId)?.name ?? '—'}</td>
+								<td class="px-4 py-2.5">
+									<span class="flex items-center gap-3">
+										{#if p.image?.url}
+											<img src={p.image.url} alt="" class="h-10 w-14 shrink-0 rounded-lg border border-line object-cover" loading="lazy" />
+										{:else}
+											<span class="flex h-10 w-14 shrink-0 items-center justify-center rounded-lg border border-line bg-accent-soft text-[10px] font-bold text-accent-strong" aria-hidden="true">—</span>
+										{/if}
+										<span class="min-w-0">
+											<span class="block truncate font-semibold">{p.name}</span>
+											<span class="block truncate font-mono text-xs font-normal text-muted">{p.slug}</span>
+											<span class="block truncate text-xs font-normal text-muted">{cats.find((c) => c.id === p.categoryId)?.name ?? '—'} • {p.sku ?? '—'}</span>
+										</span>
+									</span>
+								</td>
 								<td class="px-4 py-2.5 font-bold">{p.price.toLocaleString('id-ID')}</td>
-								<td class="px-4 py-2.5">{p.image ? '●' : '—'}</td>
 								<td class="px-4 py-2.5">
 									<span class="rounded-full px-2.5 py-0.5 text-xs font-bold {p.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}">
 										{p.status === 'active' ? t().admin.active : t().admin.draft}
