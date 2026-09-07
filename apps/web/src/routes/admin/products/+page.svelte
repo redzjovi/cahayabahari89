@@ -9,6 +9,7 @@
 		id: number; slug: string; sku: string | null; name: string; description: string | null;
 		price: number; categoryId: number | null; status: string;
 		image?: { id: number; url: string } | null;
+		createdAt?: string | null; updatedAt?: string | null;
 	};
 	type CatRow = { id: number; slug: string; name: string };
 
@@ -21,6 +22,9 @@
 	let fCat = $state('');
 	let fStatus = $state('all');
 	let confirming: string | null = $state(null);
+	type SortKey = 'name' | 'updated' | 'price' | 'status';
+	let sortKey = $state<SortKey>('updated');
+	let sortDir = $state<'asc' | 'desc'>('desc');
 
 	const canView = $derived(adminSession.can('products.write'));
 
@@ -58,6 +62,66 @@
 			return p.name.toLowerCase().includes(needle) || (p.sku ?? '').toLowerCase().includes(needle);
 		})
 	);
+
+	const sorted = $derived.by(() => {
+		const arr = [...filtered];
+		const dir = sortDir === 'asc' ? 1 : -1;
+		if (sortKey === 'name') {
+			arr.sort((a, b) => a.name.localeCompare(b.name) * dir);
+		} else if (sortKey === 'price') {
+			arr.sort((a, b) => (a.price - b.price) * dir);
+		} else if (sortKey === 'status') {
+			arr.sort((a, b) => a.status.localeCompare(b.status) * dir);
+		} else {
+			arr.sort((a, b) => {
+				const av = a.updatedAt ?? a.createdAt ?? '';
+				const bv = b.updatedAt ?? b.createdAt ?? '';
+				return bv.localeCompare(av);
+			});
+		}
+		return arr;
+	});
+
+	function toggleSort(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = key === 'name' || key === 'status' ? 'asc' : 'desc';
+		}
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	function sortLabel(key: SortKey, col: string): string {
+		const raw = sortKey === key
+			? (sortDir === 'asc' ? t().admin.sortedAsc : t().admin.sortedDesc)
+			: t().admin.sortBy;
+		return raw.replace('{col}', col);
+	}
+
+	function sortIndicator(key: SortKey): string {
+		if (sortKey !== key) return '↕';
+		return sortDir === 'asc' ? '▲' : '▼';
+	}
+
+	function formatDateTime(value: string | null): string {
+		if (!value) return '—';
+		// Stored as 'YYYY-MM-DD HH:MM:SS' (SQLite datetime('now')). Normalize and format in active locale.
+		const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return value;
+		return d.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
 
 	function apiError(json: unknown): string {
 		const e = (json as { error?: string }).error ?? '';
@@ -121,14 +185,55 @@
 				<table class="w-full min-w-[640px] text-left text-sm">
 					<thead>
 						<tr class="border-b border-line text-xs uppercase tracking-wider text-muted">
-							<th class="px-4 py-3">{t().admin.productName}</th>
-							<th class="px-4 py-3">{t().admin.priceIdr}</th>
-							<th class="px-4 py-3">{t().admin.statusCol}</th>
+							<th class="px-4 py-3" aria-sort={ariaSort('name')}>
+								<button
+									type="button"
+									onclick={() => toggleSort('name')}
+									aria-label={sortLabel('name', t().admin.productName)}
+									class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'name' ? 'text-ink' : ''}"
+								>
+									<span>{t().admin.productName}</span>
+									<span class="text-[10px] {sortKey === 'name' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('name')}</span>
+								</button>
+							</th>
+							<th class="px-4 py-3" aria-sort={ariaSort('price')}>
+								<button
+									type="button"
+									onclick={() => toggleSort('price')}
+									aria-label={sortLabel('price', t().admin.priceIdr)}
+									class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'price' ? 'text-ink' : ''}"
+								>
+									<span>{t().admin.priceIdr}</span>
+									<span class="text-[10px] {sortKey === 'price' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('price')}</span>
+								</button>
+							</th>
+							<th class="px-4 py-3" aria-sort={ariaSort('status')}>
+								<button
+									type="button"
+									onclick={() => toggleSort('status')}
+									aria-label={sortLabel('status', t().admin.statusCol)}
+									class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'status' ? 'text-ink' : ''}"
+								>
+									<span>{t().admin.statusCol}</span>
+									<span class="text-[10px] {sortKey === 'status' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('status')}</span>
+								</button>
+							</th>
+							<th class="px-4 py-3" aria-sort={ariaSort('updated')}>
+								<button
+									type="button"
+									onclick={() => toggleSort('updated')}
+									aria-label={sortLabel('updated', t().admin.updatedCol)}
+									class="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider transition hover:text-ink {sortKey === 'updated' ? 'text-ink' : ''}"
+								>
+									<span>{t().admin.updatedCol}</span>
+									<span class="text-[10px] {sortKey === 'updated' ? 'opacity-100' : 'opacity-40'}" aria-hidden="true">{sortIndicator('updated')}</span>
+								</button>
+							</th>
 							<th class="px-4 py-3">{t().admin.actions}</th>
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-line">
-						{#each filtered as p}
+						{#each sorted as p}
 							<tr>
 								<td class="px-4 py-2.5">
 									<span class="flex items-center gap-3">
@@ -150,6 +255,9 @@
 										{p.status === 'active' ? t().admin.active : t().admin.draft}
 									</span>
 								</td>
+								<td class="px-4 py-2.5 text-xs text-muted">
+									{formatDateTime(p.updatedAt ?? p.createdAt ?? null)}
+								</td>
 								<td class="px-4 py-2.5">
 									<div class="flex gap-1.5">
 										<a href={localize(`/admin/products/${p.slug}/edit`, locale.current)} class="rounded-full border border-line px-3 py-1 text-xs font-bold hover:border-brand">{t().admin.editItem}</a>
@@ -166,7 +274,7 @@
 					</tbody>
 				</table>
 			</div>
-			<p class="mt-3 text-sm text-muted">{filtered.length} / {products.length}</p>
+			<p class="mt-3 text-sm text-muted">{sorted.length} / {products.length}</p>
 		{/if}
 	{/if}
 </section>

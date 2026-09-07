@@ -25,12 +25,14 @@ export const products = sqliteTable(
 		price: integer('price').notNull().default(0), // store IDR rupiah directly
 		categoryId: integer('category_id').references(() => categories.id),
 		status: text('status').notNull().default('active'), // active | draft
-		createdAt: text('created_at').default(sql`(datetime('now'))`)
+		createdAt: text('created_at').default(sql`(datetime('now'))`),
+		updatedAt: text('updated_at').default(sql`(datetime('now'))`)
 	},
 	(table) => [
 		index('products_slug_idx').on(table.slug),
 		index('products_category_idx').on(table.categoryId),
-		index('products_status_idx').on(table.status)
+		index('products_status_idx').on(table.status),
+		index('products_updated_idx').on(table.updatedAt)
 	]
 );
 

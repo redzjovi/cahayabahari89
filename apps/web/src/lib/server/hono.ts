@@ -269,7 +269,7 @@ app.patch(
 		}
 		const [updated] = await db
 			.update(products)
-			.set({ ...patch, slug: nextSlug })
+			.set({ ...patch, slug: nextSlug, updatedAt: sql`(datetime('now'))` })
 			.where(eq(products.id, existing.id))
 			.returning();
 		return c.json(updated);
