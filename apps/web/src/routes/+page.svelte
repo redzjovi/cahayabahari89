@@ -4,7 +4,6 @@
 	import { reveal } from '$lib/reveal';
 	import SectionHead from '$lib/components/SectionHead.svelte';
 	import ProductCard from '$lib/components/ProductCard.svelte';
-	import CertBadge from '$lib/components/CertBadge.svelte';
 	import WaveDivider from '$lib/components/WaveDivider.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
 
@@ -72,34 +71,6 @@
 			{t().katalog.empty} {t().katalog.seedHint}
 		</p>
 	{/if}
-</section>
-
-<!-- QUALITY BAND -->
-<section class="bg-band">
-	<div class="content-wrap py-10">
-		<SectionHead eyebrow={t().quality.eyebrow} title={t().quality.title} sub={t().quality.sub} align="center" />
-		<div class="mt-6 grid gap-4 md:grid-cols-3">
-			{#each t().quality.items as q, i}
-				<div use:reveal class="rounded-card border border-line bg-surface p-5 shadow-card">
-					<span class="font-display text-sm font-semibold tracking-[0.2em] text-accent-strong">0{i + 1}</span>
-					<h3 class="mt-2 font-display text-xl font-bold">{q.title}</h3>
-					<p class="mt-2 text-muted">{q.text}</p>
-				</div>
-			{/each}
-		</div>
-	</div>
-</section>
-
-<WaveDivider />
-
-<!-- CERTIFICATIONS -->
-<section class="content-wrap py-10 text-center">
-	<SectionHead eyebrow={t().certs.eyebrow} title={t().certs.title} align="center" />
-	<div use:reveal class="mt-6 flex flex-wrap justify-center gap-3">
-		{#each t().certs.items as c}
-			<CertBadge label={c} />
-		{/each}
-	</div>
 </section>
 
 <!-- CTA -->

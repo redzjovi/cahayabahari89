@@ -1,5 +1,5 @@
 /** Static sitemap: locale roots + listing/contact pages. Product detail URLs are DB-driven (follow-up). */
-const PATHS = ['/en', '/id', '/en/products', '/id/produk', '/en/contact', '/id/kontak'];
+const PATHS = ['/en', '/id', '/en/products', '/id/produk', '/en/contact', '/id/kontak', '/en/about', '/id/tentang-kami'];
 
 export function GET({ url }) {
 	const body =

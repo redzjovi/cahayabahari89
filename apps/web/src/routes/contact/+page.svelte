@@ -2,7 +2,6 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { reveal } from '$lib/reveal';
 	import SectionHead from '$lib/components/SectionHead.svelte';
-	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
 	import { enhance } from '$app/forms';
 	let { form } = $props();
 
@@ -11,7 +10,7 @@
 	const EMAIL = 'sales@cahayabahari89.id';
 </script>
 
-<svelte:head><title>About & Contact — Cahaya Bahari 89</title></svelte:head>
+<svelte:head><title>{locale.current === 'id' ? 'Kontak' : 'Contact'} — Cahaya Bahari 89</title></svelte:head>
 
 <!-- 01 CONTACT CHANNELS -->
 <section class="content-wrap pb-8 pt-12">
@@ -90,40 +89,5 @@
 					<button type="submit" class="rounded-full bg-brand px-6 py-2.5 font-bold text-brand-ink transition hover:brightness-110">{t().contact.send}</button>
 			</div>
 		</form>
-	</div>
-</section>
-
-<!-- 03 OUR STORY -->
-<section class="content-wrap py-6">
-	<SectionHead eyebrow={t().about.eyebrow} title={t().about.title} />
-	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
-		<div use:reveal class="space-y-4 leading-relaxed text-muted">
-			<p>{t().about.p1}</p>
-			<p>{t().about.p2}</p>
-		</div>
-		<PhotoPlaceholder label="Our team & facility photo" aspect="aspect-[4/3]" />
-	</div>
-</section>
-
-<!-- 04 OUR JOURNEY + VALUES -->
-<section class="bg-band">
-	<div class="content-wrap py-10">
-		<SectionHead title={locale.current === 'id' ? 'Perjalanan kami' : 'Our journey'} />
-		<ol class="mt-6 grid gap-4 md:grid-cols-4">
-			{#each t().about.milestones as m}
-				<li use:reveal class="rounded-card border border-line bg-surface p-4 shadow-card">
-					<span class="font-display text-2xl font-bold text-brand">{m.year}</span>
-					<p class="mt-2 text-sm text-muted">{m.text}</p>
-				</li>
-			{/each}
-		</ol>
-		<div class="mt-6 grid gap-4 md:grid-cols-3">
-			{#each t().about.values as v}
-				<div use:reveal class="rounded-card border border-line bg-surface p-5 shadow-card">
-					<h3 class="font-display text-xl font-bold">{v.title}</h3>
-					<p class="mt-2 text-muted">{v.text}</p>
-				</div>
-			{/each}
-		</div>
 	</div>
 </section>

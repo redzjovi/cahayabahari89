@@ -46,6 +46,7 @@
 		</a>
 		<div class="hidden items-center gap-5 text-sm font-semibold md:flex">
 			<a href={localize('/products', data.locale)} class="hover:text-brand">{t().nav.products}</a>
+			<a href={localize('/about', data.locale)} class="hover:text-brand">{t().nav.about}</a>
 			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
 		<div class="hidden items-center gap-2 md:flex">
@@ -66,6 +67,7 @@
 		<div class="border-t border-line px-4 py-3 md:hidden">
 			<div class="flex flex-col gap-1 text-sm font-semibold">
 				<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.products}</a>
+				<a href={localize('/about', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.about}</a>
 				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
@@ -88,6 +90,7 @@
 				Cahaya Bahari 89
 			</span>
 			<p class="mt-3 text-sm opacity-80">{t().footer.tagline}</p>
+			<a href={localize('/about', data.locale)} class="mt-3 inline-block text-sm font-semibold underline opacity-80 hover:opacity-100">{t().nav.about} →</a>
 		</div>
 		<div>
 			<h4 class="text-sm font-bold uppercase tracking-[0.14em] opacity-70">{t().footer.follow}</h4>
