@@ -55,7 +55,7 @@
 			if (fStatus !== 'all' && p.status !== fStatus) return false;
 			const needle = q.trim().toLowerCase();
 			if (!needle) return true;
-			return p.name.toLowerCase().includes(needle) || p.slug.includes(needle) || (p.sku ?? '').toLowerCase().includes(needle);
+			return p.name.toLowerCase().includes(needle) || (p.sku ?? '').toLowerCase().includes(needle);
 		})
 	);
 
@@ -102,9 +102,9 @@
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>
 	{:else}
 		<div class="mt-6 flex flex-wrap items-center gap-2">
-			<input bind:value={q} placeholder={t().admin.productName} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
+			<input bind:value={q} placeholder={t().admin.searchNameSku} class="min-w-0 w-full rounded-full border px-4 py-2 text-sm sm:w-auto sm:flex-1 sm:max-w-xs" />
 			<select bind:value={fCat} aria-label={t().admin.categoryCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
-				<option value="">{t().katalog.catAll}</option>
+				<option value="">{t().admin.allCategories}</option>
 				{#each cats as c}<option value={String(c.id)}>{c.name}</option>{/each}
 			</select>
 			<select bind:value={fStatus} aria-label={t().admin.statusCol} class="rounded-full border border-line bg-surface px-4 py-2 text-sm font-bold text-ink">
@@ -139,8 +139,8 @@
 										{/if}
 										<span class="min-w-0">
 											<span class="block truncate font-semibold">{p.name}</span>
-											<span class="block truncate font-mono text-xs font-normal text-muted">{p.slug}</span>
-											<span class="block truncate text-xs font-normal text-muted">{cats.find((c) => c.id === p.categoryId)?.name ?? '—'} • {p.sku ?? '—'}</span>
+											<span class="block truncate font-mono text-xs font-normal text-muted">SKU: {p.sku ?? '—'}</span>
+											<span class="block truncate text-xs font-normal text-muted">{t().admin.categoryCol}: {cats.find((c) => c.id === p.categoryId)?.name ?? '—'}</span>
 										</span>
 									</span>
 								</td>

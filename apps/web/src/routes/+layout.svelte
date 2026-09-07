@@ -21,6 +21,12 @@
 		locale.set(data.locale);
 	});
 
+	const isAdmin = $derived.by(() => {
+		const parsed = parseLocalized(page.url.pathname);
+		const internal = parsed ? parsed.internal : page.url.pathname;
+		return internal === '/admin' || internal.startsWith('/admin/');
+	});
+
 	const alternates = $derived.by(() => {
 		const parsed = parseLocalized(page.url.pathname);
 		const internal = parsed ? parsed.internal : page.url.pathname;
@@ -50,7 +56,7 @@
 			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
 		<div class="hidden items-center gap-2 md:flex">
-			<LangToggle />
+			{#if !isAdmin}<LangToggle />{/if}
 			<ThemePicker />
 		</div>
 		<button
@@ -71,7 +77,7 @@
 				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
 			</div>
 			<div class="mt-3 flex items-center gap-2">
-				<LangToggle />
+				{#if !isAdmin}<LangToggle />{/if}
 				<ThemePicker />
 			</div>
 		</div>
