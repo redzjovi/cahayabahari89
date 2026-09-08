@@ -52,9 +52,9 @@
 	<SectionHead eyebrow={t().cart.title} title="" />
 
 	{#if $cart.length > 0}
-		<div class="mt-4 flex items-center gap-3">
+		<div class="mt-4 flex items-center gap-3 pl-4">
 			<label class="flex cursor-pointer items-center gap-1.5 text-sm text-muted">
-				<input type="checkbox" checked={selected.size === $cart.length && $cart.length > 0} onchange={toggleAll} class="h-4 w-4 rounded border-line accent-brand" />
+				<input type="checkbox" checked={selected.size === $cart.length && $cart.length > 0} onchange={toggleAll} class="mt-1 h-4 w-4 rounded border-line accent-brand" />
 				All
 			</label>
 			{#if hasSelection}
@@ -92,7 +92,7 @@
 							<div class="flex items-center justify-between gap-2">
 								<p class="text-sm text-muted">Rp {idr(item.price)}</p>
 								<div class="flex items-center gap-1 rounded-full border border-line">
-									<button onclick={() => cart.remove(item.slug)} class="px-2 py-0.5 text-xs font-bold text-muted transition hover:text-brand">−</button>
+									<button onclick={() => { if (item.qty === 1 && !confirm(t().cart.confirmRemove)) return; cart.remove(item.slug); }} class="px-2 py-0.5 text-xs font-bold text-muted transition hover:text-brand">−</button>
 									<span class="min-w-[1.5rem] text-center text-xs font-bold">{item.qty}</span>
 									<button onclick={() => cart.add({ slug: item.slug, name: item.name, price: item.price, imageUrl: item.imageUrl })} class="px-2 py-0.5 text-xs font-bold text-muted transition hover:text-brand">+</button>
 								</div>

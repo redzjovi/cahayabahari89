@@ -135,7 +135,8 @@ const en = {
 		orderViaWhatsApp: 'Order via WhatsApp',
 		backToCatalog: 'Back to catalog',
 		viewCart: 'View Cart',
-		inCart: 'in cart'
+		inCart: 'in cart',
+		confirmRemove: 'Remove this item from cart?'
 	},
 	admin: {
 		loginTitle: 'Admin sign in',
@@ -362,7 +363,8 @@ const id: Dict = {
 		orderViaWhatsApp: 'Pesan via WhatsApp',
 		backToCatalog: 'Kembali ke katalog',
 		viewCart: 'Lihat Keranjang',
-		inCart: 'dalam keranjang'
+		inCart: 'dalam keranjang',
+		confirmRemove: 'Hapus barang ini dari keranjang?'
 	},
 	admin: {
 		loginTitle: 'Masuk admin',
