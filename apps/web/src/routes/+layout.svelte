@@ -27,6 +27,7 @@
 	// (single-threaded: assignment + render are atomic per request).
 	// The $effect below handles client-side navs, persistence, <html lang>.
 	// svelte-check may warn that this captures data's initial value — intended.
+	// svelte-ignore state_referenced_locally
 	locale.current = data.locale;
 	$effect(() => {
 		locale.set(data.locale);
@@ -98,7 +99,7 @@
 	</nav>
 </header>
 {#if menuOpen}
-	<div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden" onclick={() => (menuOpen = false)}></div>
+	<button type="button" aria-label="Close menu" class="fixed inset-0 z-40 cursor-default bg-black/40 backdrop-blur-sm md:hidden" onclick={() => (menuOpen = false)}></button>
 {/if}
 <aside class="fixed top-0 left-0 bottom-0 z-50 flex w-64 flex-col border-r border-line bg-bg/95 backdrop-blur transition-transform duration-200 md:hidden" class:translate-x-0={menuOpen} class:-translate-x-full={!menuOpen}>
 	<div class="flex flex-col gap-1 p-3">
