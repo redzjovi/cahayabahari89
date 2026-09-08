@@ -122,6 +122,10 @@
 	{@render children()}
 </main>
 
+<button onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} class="fixed bottom-6 right-6 z-20 hidden h-10 w-10 items-center justify-center rounded-full border border-line bg-surface shadow-card transition hover:border-brand hover:text-brand md:flex" aria-label="Scroll to top">
+	<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+</button>
+
 {#if !isAdmin}
 <footer class="mt-16 bg-brand text-brand-ink">
 	<div class="content-wrap grid gap-8 py-8 sm:grid-cols-2">

@@ -15,40 +15,20 @@
 	<meta name="description" content="Cahaya Bahari 89 — premium salmon and fresh fish supplier. Browse the catalog, check prices, contact sales." />
 </svelte:head>
 
-<section data-section="hero" class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16 lg:pt-12">
+<section data-section="hero" class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16">
 	<div>
 		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
 		<h1 class="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
 			{t().hero.titleA}<br />
-			<span class="text-brand">{t().hero.titleB}</span>
+			<span class="hero-gradient">{t().hero.titleB}</span>
 		</h1>
 		<p class="mt-4 max-w-xl text-lg leading-relaxed text-muted">{t().hero.sub}</p>
 		<div class="mt-6 flex flex-wrap gap-3">
 			<a href={localize('/products', locale.current)} class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">{t().hero.ctaProducts}</a>
 			<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-4 py-2 font-bold transition hover:border-brand hover:text-brand">{t().hero.ctaContact}</a>
 		</div>
-		<dl class="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-6 sm:grid-cols-4">
-			{#each t().stats as s}
-				<div>
-					<dt class="sr-only">{s.label}</dt>
-					<dd class="font-display text-2xl font-bold text-brand sm:text-3xl">{s.value}</dd>
-					<dd class="mt-1 text-sm text-muted">{s.label}</dd>
-				</div>
-			{/each}
-		</dl>
 	</div>
-	<div class="relative lg:h-full lg:min-h-[560px]">
-		<div class="h-full overflow-hidden rounded-card lg:rounded-l-card lg:rounded-r-none">
-			<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[16/10] lg:aspect-auto lg:h-full" rounded={false} />
-		</div>
-		<div class="anim-float absolute -bottom-5 left-3 flex items-center gap-3 rounded-card border border-line bg-surface px-3 py-2 shadow-card sm:left-6 lg:left-8">
-			<span class="inline-block h-3 w-3 rounded-full bg-accent" aria-hidden="true"></span>
-			<span>
-				<span class="block text-sm font-bold">{t().hero.freshBadge}</span>
-				<span class="block text-xs text-muted">0–4°C{t().hero.freshSub}</span>
-			</span>
-		</div>
-	</div>
+	<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[4/3]" />
 </section>
 
 <div data-section="wave-divider"><WaveDivider /></div>

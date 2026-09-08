@@ -10,9 +10,9 @@
 	<meta name="description" content={t().about.p1.slice(0, 150)} />
 </svelte:head>
 
-<section data-section="our-story" class="content-wrap py-6">
+<section data-section="our-story" class="content-wrap pt-8 pb-6">
 	<SectionHead eyebrow={t().about.eyebrow} title={t().about.title} />
-	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
+	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
 		<div use:reveal class="space-y-4 leading-relaxed text-muted">
 			<p>{t().about.p1}</p>
 			<p>{t().about.p2}</p>
