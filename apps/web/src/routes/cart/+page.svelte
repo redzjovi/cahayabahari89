@@ -48,6 +48,7 @@
 	<title>{t().cart.title} — Cahaya Bahari 89</title>
 </svelte:head>
 
+<!-- CART -->
 <section class="content-wrap pb-6 pt-8">
 	<SectionHead eyebrow={t().cart.title} title="" />
 

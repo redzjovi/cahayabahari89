@@ -22,7 +22,7 @@
 	</div>
 </section>
 
-<!-- OUR JOURNEY + VALUES -->
+<!-- JOURNEY -->
 <section class="bg-band">
 	<div class="content-wrap py-10">
 		<SectionHead title={t().about.journeyTitle} />

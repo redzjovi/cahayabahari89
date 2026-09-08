@@ -15,9 +15,9 @@
 	<meta name="description" content="Cahaya Bahari 89 — premium salmon and fresh fish supplier. Browse the catalog, check prices, contact sales." />
 </svelte:head>
 
-<!-- HERO: text in 7xl measure, image stretched to right viewport edge -->
-<section class="grid items-center gap-6 px-4 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:px-0 lg:pb-16 lg:pt-12">
-	<div class="lg:pl-[max(1rem,calc((100vw-88rem)/2+2rem))] lg:pr-0">
+<!-- HERO -->
+<section class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16 lg:pt-12">
+	<div>
 		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
 		<h1 class="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
 			{t().hero.titleA}<br />
@@ -52,6 +52,7 @@
 	</div>
 </section>
 
+<!-- WAVE_DIVIDER -->
 <WaveDivider />
 
 <!-- FEATURED PRODUCTS -->

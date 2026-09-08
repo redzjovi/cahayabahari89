@@ -70,6 +70,7 @@
 	<link rel="canonical" href="{page.url.origin}{localize(`/products/${p.slug}`, locale.current)}" />
 </svelte:head>
 
+<!-- PRODUCT_DETAIL -->
 <section class="content-wrap pb-6 pt-8">
 	<a href={localize('/products', locale.current)} onclick={goBack} class="text-sm font-semibold text-muted underline hover:text-ink">&larr; {t().detail.back}</a>
 
