@@ -10,8 +10,7 @@
 	<meta name="description" content={t().about.p1.slice(0, 150)} />
 </svelte:head>
 
-<!-- OUR STORY -->
-<section class="content-wrap py-6">
+<section data-section="our-story" class="content-wrap py-6">
 	<SectionHead eyebrow={t().about.eyebrow} title={t().about.title} />
 	<div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
 		<div use:reveal class="space-y-4 leading-relaxed text-muted">
@@ -22,8 +21,7 @@
 	</div>
 </section>
 
-<!-- JOURNEY -->
-<section class="bg-band">
+<section data-section="journey" class="bg-band">
 	<div class="content-wrap py-10">
 		<SectionHead title={t().about.journeyTitle} />
 		<ol class="relative mx-auto mt-8 max-w-3xl space-y-8 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-line md:before:left-1/2 md:before:-translate-x-1/2">
@@ -38,8 +36,7 @@
 	</div>
 </section>
 
-<!-- OUR VALUES -->
-<section class="content-wrap py-10">
+<section data-section="our-values" class="content-wrap py-10">
 	<SectionHead title={t().about.valuesTitle} align="center" />
 	<div class="mt-6 grid gap-4 md:grid-cols-3">
 		{#each t().about.values as v}

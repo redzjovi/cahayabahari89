@@ -15,8 +15,7 @@
 	<meta name="description" content="Cahaya Bahari 89 — premium salmon and fresh fish supplier. Browse the catalog, check prices, contact sales." />
 </svelte:head>
 
-<!-- HERO -->
-<section class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16 lg:pt-12">
+<section data-section="hero" class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16 lg:pt-12">
 	<div>
 		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
 		<h1 class="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
@@ -52,11 +51,9 @@
 	</div>
 </section>
 
-<!-- WAVE_DIVIDER -->
-<WaveDivider />
+<div data-section="wave-divider"><WaveDivider /></div>
 
-<!-- FEATURED PRODUCTS -->
-<section class="content-wrap py-10">
+<section data-section="featured-products" class="content-wrap py-10">
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<SectionHead eyebrow={t().featured.eyebrow} title={t().featured.title} sub={t().featured.sub} />
 		<a href={localize('/products', locale.current)} class="font-bold text-brand hover:underline">{t().featured.viewAll} →</a>
@@ -74,8 +71,7 @@
 	{/if}
 </section>
 
-<!-- CTA -->
-<section class="content-wrap pb-4">
+<section data-section="cta" class="content-wrap pb-4">
 	<div use:reveal class="rounded-card bg-brand px-6 py-8 text-center text-brand-ink shadow-card sm:px-10">
 		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t().cta.title}</h2>
 		<p class="mx-auto mt-3 max-w-xl opacity-80">{t().cta.sub}</p>

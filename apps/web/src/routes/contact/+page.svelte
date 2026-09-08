@@ -13,8 +13,7 @@
 
 <svelte:head><title>{locale.current === 'id' ? 'Kontak' : 'Contact'} — Cahaya Bahari 89</title></svelte:head>
 
-<!-- CONTACT_CHANNELS -->
-<section class="content-wrap pb-8 pt-12">
+<section data-section="contact-channels" class="content-wrap pb-8 pt-12">
 	<SectionHead eyebrow={t().contact.eyebrow} title="" />
 	<div class="mt-8 grid gap-5 sm:grid-cols-2">
 		<a
@@ -50,8 +49,7 @@
 	</div>
 </section>
 
-<!-- INQUIRY_FORM -->
-<section class="mx-auto max-w-3xl px-4 py-6">
+<section data-section="inquiry-form" class="mx-auto max-w-3xl px-4 py-6">
 	<SectionHead title={t().contact.send} />
 	<div use:reveal class="mt-6">
 		{#if form?.ok}
