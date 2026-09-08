@@ -60,22 +60,22 @@
 	</div>
 
 	<!-- Content -->
-	<p class="font-display text-[8rem] font-bold leading-none text-brand opacity-20 sm:text-[10rem]">404</p>
-	<h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">{isId ? 'Halaman tidak ditemukan' : 'Page not found'}</h1>
-	<p class="mt-3 max-w-md text-muted">
+	<p class="pointer-events-none font-display text-[8rem] font-bold leading-none text-brand opacity-20 select-none sm:text-[10rem]">404</p>
+	<h1 class="pointer-events-none mt-2 font-display text-2xl font-bold sm:text-3xl">{isId ? 'Halaman tidak ditemukan' : 'Page not found'}</h1>
+	<p class="pointer-events-none mt-3 max-w-md text-muted">
 		{isId
 			? 'Halaman yang kamu cari tidak ada. Klik salah satu ikan di laut ini untuk kenalan!'
 			: 'The page you are looking for does not exist. Click a fish swimming by to meet it!'}
 	</p>
-	<a href={localize('/', locale.current)} class="mt-6 inline-block rounded-full bg-brand px-6 py-3 font-bold text-brand-ink transition hover:brightness-110">
+	<a href={localize('/', locale.current)} class="relative mt-6 inline-block rounded-full bg-brand px-6 py-3 font-bold text-brand-ink transition hover:brightness-110">
 		{isId ? 'Kembali ke beranda' : 'Back to home'}
 	</a>
 
 	<!-- Ocean wave -->
-	<svg class="absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" preserveAspectRatio="none" style="height: 80px;" aria-hidden="true">
+	<svg class="pointer-events-none absolute bottom-0 left-0 w-full" viewBox="0 0 1440 120" fill="none" preserveAspectRatio="none" style="height: 80px;" aria-hidden="true">
 		<path d="M0 60 Q 180 0 360 60 T 720 60 T 1080 60 T 1440 60 V120 H0 Z" fill="var(--band)" />
 	</svg>
-	<div class="absolute bottom-0 left-0 right-0 h-16 bg-band" aria-hidden="true"></div>
+	<div class="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-band" aria-hidden="true"></div>
 </div>
 
 <!-- Fish info modal -->
