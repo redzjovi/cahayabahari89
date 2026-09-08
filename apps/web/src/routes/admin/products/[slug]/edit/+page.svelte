@@ -172,7 +172,7 @@
 						{/each}
 					</span>
 					<span class="flex flex-wrap items-center gap-2">
-						<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={uploadFiles} class="text-sm font-normal" />
+						<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={uploadFiles} class="w-full text-sm font-normal" />
 						<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
 						{#if uploading}<span class="text-xs text-muted">…</span>{/if}
 					</span>

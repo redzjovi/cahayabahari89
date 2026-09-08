@@ -31,13 +31,13 @@ const { subscribe, update } = writable<CartItem[]>(loadCart());
 
 export const cart = {
 	subscribe,
-	add(product: Omit<CartItem, 'qty'>) {
+	add(product: Omit<CartItem, 'qty'>, qty = 1) {
 		update((items) => {
 			const existing = items.find((i) => i.slug === product.slug);
 			if (existing) {
-				existing.qty += 1;
+				existing.qty += qty;
 			} else {
-				items.push({ ...product, qty: 1 });
+				items.push({ ...product, qty });
 			}
 			saveCart(items);
 			return items;

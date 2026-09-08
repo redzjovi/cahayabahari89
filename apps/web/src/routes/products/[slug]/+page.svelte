@@ -12,6 +12,7 @@
 	const gallery = $derived((p.images ?? []) as { url?: string; alt?: string | null }[]);
 	let selected = $state(0);
 	let justAdded = $state(false);
+	let qty = $state(1);
 
 	function thumbKeys(e: KeyboardEvent, i: number) {
 		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -34,9 +35,9 @@
 			name: p.name,
 			price: p.price,
 			imageUrl: firstImage
-		});
+		}, qty);
 		justAdded = true;
-		setTimeout(() => (justAdded = false), 300);
+		setTimeout(() => { justAdded = false; qty = 1; }, 300);
 	}
 
 	/**
@@ -120,7 +121,14 @@
 			<p class="mt-2 font-display text-base font-bold text-brand md:text-xl">Rp {idr(p.price)}</p>
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 
-			<div class="mt-5 flex flex-wrap gap-3">
+			<div class="mt-5 flex items-center gap-3">
+				<div class="flex items-center gap-1 rounded-full border border-line">
+					<button onclick={() => qty = Math.max(1, qty - 1)} class="px-3 py-2 text-sm font-bold text-muted transition hover:text-brand">−</button>
+					<span class="min-w-[2rem] text-center text-sm font-bold">{qty}</span>
+					<button onclick={() => qty++} class="px-3 py-2 text-sm font-bold text-muted transition hover:text-brand">+</button>
+				</div>
+			</div>
+			<div class="mt-3 flex flex-wrap gap-3">
 				<button onclick={addToCart} class="rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110 {justAdded ? 'animate-pop' : ''}">{t().cart.addToCart}</button>
 				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">{t().cart.orderViaWhatsApp}</a>
 			</div>

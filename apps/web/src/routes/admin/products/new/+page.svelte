@@ -118,7 +118,7 @@
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
 			<Field label={t().admin.attachImages}>
 				<span class="grid gap-1.5">
-					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} class="text-sm font-normal" />
+					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} class="w-full text-sm font-normal" />
 					{#if pendingFiles.length}
 						<span class="text-xs font-normal text-muted">{pendingFiles.length} × {pendingFiles.map((f) => f.name).join(', ')}</span>
 					{:else}
