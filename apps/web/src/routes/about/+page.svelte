@@ -30,7 +30,7 @@
 			{#each t().about.milestones as m, i}
 				<li use:reveal class="relative pl-10 md:w-1/2 md:pl-0 {i % 2 === 0 ? 'md:pr-10 md:text-right' : 'md:ml-auto md:pl-10'}">
 					<span class="absolute left-0 top-1.5 h-4 w-4 rounded-full bg-accent ring-4 ring-band {i % 2 === 0 ? 'md:left-auto md:-right-2' : 'md:-left-2'}" aria-hidden="true"></span>
-					<span class="font-display text-2xl font-bold text-brand">{m.year}</span>
+					<span class="font-display text-xl font-bold text-brand md:text-2xl">{m.year}</span>
 					<p class="mt-1 leading-relaxed text-muted">{m.text}</p>
 				</li>
 			{/each}
@@ -44,7 +44,7 @@
 	<div class="mt-6 grid gap-4 md:grid-cols-3">
 		{#each t().about.values as v}
 			<div use:reveal class="rounded-card border border-line bg-surface p-5 shadow-card">
-				<h3 class="font-display text-xl font-bold">{v.title}</h3>
+				<h3 class="font-display text-base font-bold md:text-xl">{v.title}</h3>
 				<p class="mt-2 text-muted">{v.text}</p>
 			</div>
 		{/each}

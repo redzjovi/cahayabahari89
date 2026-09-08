@@ -68,15 +68,14 @@
 			<a href={localize('/about', data.locale)} class="hover:text-brand">{t().nav.about}</a>
 			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
-		<div class="hidden items-center gap-2 md:flex">
+		<div class="hidden items-center justify-end gap-2 md:flex md:flex-1">
 			<a href={localize('/cart', data.locale)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand">
 				<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 					<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
 				<span class="text-sm">{$cartQty}</span>
 			</a>
-			<LangToggle />
-			<ThemePicker />
+			<!-- <ThemePicker /> -->
 		</div>
 		<a href={localize('/cart', data.locale)} class="relative rounded-lg border border-line p-1.5 md:hidden" aria-label="Cart">
 			<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -105,14 +104,6 @@
 			<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
 			<span class="text-sm font-semibold">{t().nav.contact}</span>
 		</a>
-	</div>
-	<div class="flex items-center gap-3 border-t border-line p-3">
-		<div class="flex-1">
-			<LangToggle />
-		</div>
-		<div class="flex-1">
-			<ThemePicker />
-		</div>
 	</div>
 </aside>
 {/if}
@@ -154,7 +145,10 @@
 	<div class="border-t border-white/15">
 		<div class="content-wrap flex flex-wrap items-center justify-between gap-2 py-4 text-xs opacity-70">
 			<span>© {new Date().getFullYear()} Cahaya Bahari 89 — {t().footer.rights}</span>
-			<span>{data.locale === 'id' ? 'ID' : 'EN'} • SvelteKit + Hono on Cloudflare</span>
+			<div class="flex items-center gap-2">
+				<LangToggle />
+				<span>SvelteKit + Hono on Cloudflare</span>
+			</div>
 		</div>
 	</div>
 </footer>

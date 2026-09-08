@@ -17,7 +17,7 @@ export const THEMES: { id: ThemeName; label: string; mood: string; swatch: strin
 	{ id: 'soft-coastal', label: 'Soft Coastal', mood: 'Friendly direct-to-consumer', swatch: '#f49b8f' }
 ];
 
-export const DEFAULT_THEME: ThemeName = 'fresh-ocean';
+export const DEFAULT_THEME: ThemeName = 'aqua-fresh';
 
 function isThemeName(value: unknown): value is ThemeName {
 	return THEMES.some((t) => t.id === value);

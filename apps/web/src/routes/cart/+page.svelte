@@ -90,7 +90,7 @@
 						<div class="flex flex-1 flex-col gap-2">
 							<h3 class="font-display text-sm font-bold md:text-lg">{item.name}</h3>
 							<div class="flex items-center justify-between gap-2">
-								<p class="text-sm text-muted">Rp {idr(item.price)} <span class="text-xs">{t().katalog.per}</span></p>
+								<p class="text-sm text-muted">Rp {idr(item.price)}</p>
 								<div class="flex items-center gap-1 rounded-full border border-line">
 									<button onclick={() => cart.remove(item.slug)} class="px-2 py-0.5 text-xs font-bold text-muted transition hover:text-brand">−</button>
 									<span class="min-w-[1.5rem] text-center text-xs font-bold">{item.qty}</span>

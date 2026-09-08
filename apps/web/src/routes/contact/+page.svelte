@@ -28,7 +28,7 @@
 			</span>
 			<span>
 				<span class="block text-xs font-bold uppercase tracking-[0.14em] text-muted">WhatsApp</span>
-				<span class="mt-1 block font-display text-xl font-bold hover:text-brand">+62 878-7711-8199</span>
+				<span class="mt-1 block font-display text-base font-bold hover:text-brand md:text-xl">+62 878-7711-8199</span>
 				<span class="mt-1 block text-sm text-muted">Mon–Sat, 07:00–17:00 WIB</span>
 			</span>
 		</a>
@@ -42,7 +42,7 @@
 			</span>
 			<span>
 				<span class="block text-xs font-bold uppercase tracking-[0.14em] text-muted">Email</span>
-				<span class="mt-1 block font-display text-xl font-bold hover:text-brand">{EMAIL}</span>
+				<span class="mt-1 block font-display text-base font-bold hover:text-brand md:text-xl">{EMAIL}</span>
 				<span class="mt-1 block text-sm text-muted">{locale.current === 'id' ? 'Balasan maks. 1 hari kerja' : 'Replies within 1 business day'}</span>
 			</span>
 		</a>

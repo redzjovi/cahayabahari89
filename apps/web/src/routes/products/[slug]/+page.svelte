@@ -113,9 +113,8 @@
 			{#if p.category}
 				<a href={localize(`/products?cat=${p.category.slug}`, locale.current)} class="inline-block rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-strong">{p.category.name}</a>
 			{/if}
-			<h1 class="mt-3 font-display text-4xl font-bold tracking-tight">{p.name}</h1>
-			<p class="mt-1 font-mono text-sm font-normal text-muted">{p.slug}</p>
-			<p class="mt-2 font-display text-3xl font-bold text-brand">Rp {idr(p.price)}<span class="text-base font-medium text-muted">{t().katalog.per}</span></p>
+			<h1 class="mt-3 font-display text-2xl font-bold tracking-tight md:text-3xl">{p.name}</h1>
+			<p class="mt-2 font-display text-base font-bold text-brand md:text-xl">Rp {idr(p.price)}</p>
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 
 			<div class="mt-5 flex flex-wrap gap-3">
@@ -135,7 +134,7 @@
 
 	{#if (data.related as any[]).length}
 		<div class="mt-10">
-			<h2 class="font-display text-2xl font-bold">{t().detail.related}</h2>
+			<h2 class="font-display text-xl font-bold md:text-2xl">{t().detail.related}</h2>
 			<div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
 				{#each data.related as r}
 					<ProductCard product={r} />
