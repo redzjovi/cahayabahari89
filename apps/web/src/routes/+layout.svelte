@@ -48,7 +48,18 @@
 {#if !isAdmin}
 <header class="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur">
 	<nav class="content-wrap flex items-center justify-between gap-3 py-3">
-		<a href={localize('/', data.locale)} class="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+		<button
+			type="button"
+			class="rounded-lg border border-line p-2 md:hidden"
+			aria-label="Menu"
+			aria-expanded={menuOpen}
+			onclick={() => (menuOpen = !menuOpen)}
+		>
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+				<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<a href={localize('/', data.locale)} class="flex items-center gap-2 text-lg font-extrabold tracking-tight md:flex-1">
 			<FishMark cls="h-7 w-7 text-accent-strong" />
 			Cahaya Bahari 89
 		</a>
@@ -59,7 +70,6 @@
 		</div>
 		<div class="hidden items-center gap-2 md:flex">
 			<a href={localize('/cart', data.locale)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand">
-				<!-- Simple cart icon -->
 				<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 					<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
@@ -68,36 +78,43 @@
 			<LangToggle />
 			<ThemePicker />
 		</div>
-		<button
-			type="button"
-			class="rounded-lg border border-line p-2 md:hidden"
-			aria-label="Menu"
-			aria-expanded={menuOpen}
-			onclick={() => (menuOpen = !menuOpen)}
-		>
-			<svg viewBox="0 0 20 20" class="h-5 w-5" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-		</button>
+		<a href={localize('/cart', data.locale)} class="relative rounded-lg border border-line p-2 md:hidden" aria-label="Cart">
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+				<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+			{#if $cartQty > 0}
+				<span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[9px] text-brand-ink font-bold">{$cartQty > 99 ? '99+' : $cartQty}</span>
+			{/if}
+		</a>
 	</nav>
-	{#if menuOpen}
-		<div class="border-t border-line px-4 py-3 md:hidden">
-			<div class="flex flex-col gap-1 text-sm font-semibold">
-				<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.products}</a>
-				<a href={localize('/about', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.about}</a>
-				<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="rounded-lg px-3 py-2 hover:bg-band">{t().nav.contact}</a>
-			</div>
-			<div class="mt-3 flex items-center gap-2">
-				<a href={localize('/cart', data.locale)} onclick={() => (menuOpen = false)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand">
-					<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-						<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
-					<span class="text-sm">{$cartQty}</span>
-				</a>
-				<LangToggle />
-				<ThemePicker />
-			</div>
-		</div>
-	{/if}
 </header>
+{#if menuOpen}
+	<div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden" onclick={() => (menuOpen = false)}></div>
+{/if}
+<aside class="fixed top-0 left-0 bottom-0 z-50 flex w-64 flex-col border-r border-line bg-bg/95 backdrop-blur transition-transform duration-200 md:hidden" class:translate-x-0={menuOpen} class:-translate-x-full={!menuOpen}>
+	<div class="flex flex-col gap-1 p-4">
+		<a href={localize('/products', data.locale)} onclick={() => (menuOpen = false)} class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-band">
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			<span class="font-semibold">{t().nav.products}</span>
+		</a>
+		<a href={localize('/about', data.locale)} onclick={() => (menuOpen = false)} class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-band">
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 1.1.3 2.2.8 3.2L5 17h14l-1-4.8c.5-1 .8-2.1.8-3.2 0-3.87-3.13-7-7-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			<span class="font-semibold">{t().nav.about}</span>
+		</a>
+		<a href={localize('/contact', data.locale)} onclick={() => (menuOpen = false)} class="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-band">
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			<span class="font-semibold">{t().nav.contact}</span>
+		</a>
+	</div>
+	<div class="flex items-center gap-3 border-t border-line p-4">
+		<div class="flex-1">
+			<LangToggle />
+		</div>
+		<div class="flex-1">
+			<ThemePicker />
+		</div>
+	</div>
+</aside>
 {/if}
 
 <main>
