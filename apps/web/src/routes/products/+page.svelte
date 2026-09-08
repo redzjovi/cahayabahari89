@@ -5,6 +5,8 @@
 	import ProductCard from '$lib/components/ProductCard.svelte';
 
 	let { data } = $props();
+	let justApplied = $state(false);
+	let justReset = $state(false);
 
 	// Prototype curation: pinned slugs float first when sort=best.
 	// Edit this list to re-curate (is_featured column is the planned upgrade).
@@ -94,8 +96,8 @@
 					</div>
 				</fieldset>
 				<div class="flex gap-2">
-					<button type="submit" class="flex-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:brightness-110">{t().katalog.apply}</button>
-					<a href={pageUrl({ q: undefined, cat: undefined, min: undefined, max: undefined, sort: 'best' })} class="rounded-full border border-line px-4 py-2 text-sm font-bold transition hover:border-brand">{t().katalog.reset}</a>
+					<button type="submit" onclick={() => { justApplied = true; setTimeout(() => justApplied = false, 300); }} class="flex-1 rounded-full bg-brand px-4 py-2 text-sm font-bold text-brand-ink transition hover:brightness-110 {justApplied ? 'animate-pop' : ''}">{t().katalog.apply}</button>
+					<a href={pageUrl({ q: undefined, cat: undefined, min: undefined, max: undefined, sort: 'best' })} onclick={() => { justReset = true; setTimeout(() => justReset = false, 300); }} class="rounded-full border border-line px-4 py-2 text-sm font-bold transition hover:border-brand {justReset ? 'animate-pop' : ''}">{t().katalog.reset}</a>
 				</div>
 			</form>
 		</details>

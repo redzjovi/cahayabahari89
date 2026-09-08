@@ -4,6 +4,7 @@
 	import SectionHead from '$lib/components/SectionHead.svelte';
 	import { enhance } from '$app/forms';
 	let { form } = $props();
+	let submitting = $state(false);
 
 	const WA_NUMBER = '6287877118199';
 	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
@@ -54,13 +55,19 @@
 	<SectionHead title={t().contact.send} />
 	<div use:reveal class="mt-6">
 		{#if form?.ok}
-			<p class="rounded-card bg-emerald-500/10 p-4 font-medium text-emerald-600">{t().contact.ok}</p>
+			<p class="animate-pop rounded-card bg-emerald-500/10 p-4 font-medium text-emerald-600">{t().contact.ok}</p>
 		{/if}
 		{#if form?.error}
-			<p class="rounded-card bg-red-500/10 p-4 font-medium text-red-500">{t().contact.fail}</p>
+			<p class="animate-pop rounded-card bg-red-500/10 p-4 font-medium text-red-500">{t().contact.fail}</p>
 		{/if}
 
-		<form method="POST" use:enhance class="mt-2 grid gap-3 sm:grid-cols-2">
+		<form method="POST" use:enhance={() => {
+			submitting = true;
+			return async ({ update }) => {
+				await update();
+				submitting = false;
+			};
+		}} class="mt-2 grid gap-3 sm:grid-cols-2">
 			<label class="grid gap-1.5 text-sm font-semibold">
 				{t().contact.name}
 				<input name="name" required minlength="2" class="rounded-card border px-4 py-2.5 font-normal" />
@@ -85,9 +92,18 @@
 				{t().contact.message}
 				<textarea name="message" required minlength="10" rows="5" class="rounded-card border px-4 py-2.5 font-normal"></textarea>
 			</label>
-			<div class="sm:col-span-2">
-					<button type="submit" class="rounded-full bg-brand px-6 py-2.5 font-bold text-brand-ink transition hover:brightness-110">{t().contact.send}</button>
-			</div>
+		<div class="sm:col-span-2">
+				<button type="submit" disabled={submitting} class="rounded-full bg-brand px-6 py-2.5 font-bold text-brand-ink transition hover:brightness-110 disabled:opacity-60">
+					{#if submitting}
+						<span class="inline-flex items-center gap-2">
+							<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+							{t().contact.send}…
+						</span>
+					{:else}
+						{t().contact.send}
+					{/if}
+				</button>
+		</div>
 		</form>
 	</div>
 </section>

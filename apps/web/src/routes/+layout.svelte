@@ -11,6 +11,16 @@
 
 	let { children, data } = $props();
 	let menuOpen = $state(false);
+	let cartPulse = $state(false);
+
+	let prevCartQty = $cartQty;
+	$effect(() => {
+		if ($cartQty > prevCartQty) {
+			cartPulse = true;
+			setTimeout(() => (cartPulse = false), 400);
+		}
+		prevCartQty = $cartQty;
+	});
 
 	// URL (via +layout.server.ts) is the locale source of truth.
 	// Direct assignment runs synchronously during each SSR render pass
@@ -69,7 +79,7 @@
 			<a href={localize('/contact', data.locale)} class="hover:text-brand">{t().nav.contact}</a>
 		</div>
 		<div class="hidden items-center justify-end gap-2 md:flex md:flex-1">
-			<a href={localize('/cart', data.locale)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand">
+			<a href={localize('/cart', data.locale)} class="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 font-bold transition hover:border-brand hover:text-brand {cartPulse ? 'animate-cart-pulse' : ''}">
 				<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 					<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
@@ -77,7 +87,7 @@
 			</a>
 			<!-- <ThemePicker /> -->
 		</div>
-		<a href={localize('/cart', data.locale)} class="relative rounded-lg border border-line p-1.5 md:hidden" aria-label="Cart">
+		<a href={localize('/cart', data.locale)} class="relative rounded-lg border border-line p-1.5 md:hidden {cartPulse ? 'animate-cart-pulse' : ''}" aria-label="Cart">
 			<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 				<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17M17 13v4a2 2 0 11-4 0v-4M9 19a2 2 0 102 2 2 2 0 10-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>

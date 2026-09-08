@@ -11,6 +11,7 @@
 	const p = $derived(data.product as any);
 	const gallery = $derived((p.images ?? []) as { url?: string; alt?: string | null }[]);
 	let selected = $state(0);
+	let justAdded = $state(false);
 
 	function thumbKeys(e: KeyboardEvent, i: number) {
 		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -34,6 +35,8 @@
 			price: p.price,
 			imageUrl: firstImage
 		});
+		justAdded = true;
+		setTimeout(() => (justAdded = false), 300);
 	}
 
 	/**
@@ -118,7 +121,7 @@
 			<p class="mt-4 leading-relaxed text-muted">{p.description ?? t().detail.noDesc}</p>
 
 			<div class="mt-5 flex flex-wrap gap-3">
-				<button onclick={addToCart} class="rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110">{t().cart.addToCart}</button>
+				<button onclick={addToCart} class="rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110 {justAdded ? 'animate-pop' : ''}">{t().cart.addToCart}</button>
 				<a href={waLink} target="_blank" rel="noreferrer" class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">{t().cart.orderViaWhatsApp}</a>
 			</div>
 

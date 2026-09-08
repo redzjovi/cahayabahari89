@@ -6,6 +6,7 @@
 	import PhotoPlaceholder from './PhotoPlaceholder.svelte';
 
 	let { product, badge = false }: { product: any; badge?: boolean } = $props();
+	let justAdded = $state(false);
 
 	function idr(n: number) {
 		return n.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US');
@@ -20,6 +21,8 @@
 			price: product.price,
 			imageUrl: product.image?.url ?? ''
 		});
+		justAdded = true;
+		setTimeout(() => (justAdded = false), 300);
 	}
 </script>
 
@@ -40,7 +43,7 @@
 		{#if product.description}
 			<p class="line-clamp-2 text-sm text-muted">{product.description}</p>
 		{/if}
-		<button onclick={addToCart} class="mt-2 rounded-full bg-brand px-4 py-2 font-bold text-brand-ink text-sm transition hover:brightness-110">
+		<button onclick={addToCart} class="mt-2 rounded-full bg-brand px-4 py-2 font-bold text-brand-ink text-sm transition hover:brightness-110 {justAdded ? 'animate-pop' : ''}">
 			{t().cart.addToCart}
 		</button>
 	</div>
