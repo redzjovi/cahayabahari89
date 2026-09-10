@@ -3,10 +3,10 @@
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
 	import Field from '$lib/components/Field.svelte';
+	import AdminImageGrid from '$lib/components/AdminImageGrid.svelte';
 	import { slugify } from '$lib/slug';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import { preview } from '$lib/preview.svelte';
 
 	type CatRow = { id: number; slug: string; name: string };
 	type PendingFile = { file: File; url: string };
@@ -101,11 +101,21 @@
 		}
 	}
 
-	function pickFiles(e: Event) {
-		const input = e.target as HTMLInputElement;
-		if (!input.files) return;
-		for (const f of input.files) pending.push({ file: f, url: URL.createObjectURL(f) });
-		input.value = '';
+	function pickFiles(files: FileList) {
+		for (const f of files) pending.push({ file: f, url: URL.createObjectURL(f) });
+	}
+
+	function movePending(index: number, dir: -1 | 1) {
+		const to = index + dir;
+		if (to < 0 || to >= pending.length) return;
+		const [item] = pending.splice(index, 1);
+		pending.splice(to, 0, item);
+	}
+
+	function dropPending(from: number, to: number) {
+		if (from === to || from < 0 || to < 0 || from >= pending.length || to >= pending.length) return;
+		const [item] = pending.splice(from, 1);
+		pending.splice(to, 0, item);
 	}
 
 	function unstage(index: number) {
@@ -137,26 +147,16 @@
 		{/if}
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
 			<Field label={t().admin.attachImages}>
-				<span class="grid gap-1.5">
-					{#if pending.length}
-						<span class="flex flex-wrap gap-2">
-							{#each pending as p, i}
-								<span class="relative inline-block overflow-hidden rounded-lg border border-dashed border-brand">
-									<button type="button" onclick={() => preview.open(p.url, p.file.name)} aria-label={p.file.name} class="block transition hover:opacity-90">
-										<img src={p.url} alt={p.file.name} class="h-16 w-20 object-cover" loading="lazy" />
-									</button>
-									<button type="button" onclick={() => unstage(i)} disabled={busy} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white disabled:opacity-50">×</button>
-								</span>
-							{/each}
-						</span>
-					{/if}
-					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} disabled={busy} class="w-full text-sm font-normal disabled:opacity-50" />
-					{#if pending.length}
-						<span class="text-xs font-normal text-muted">{pending.length} × {pending.map((p) => p.file.name).join(', ')}</span>
-					{:else}
-						<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
-					{/if}
-				</span>
+				<AdminImageGrid
+					pending={pending.map((p) => ({ url: p.url, name: p.file.name }))}
+					{busy}
+					nameFallback={fName}
+					onPick={pickFiles}
+					onUnstage={unstage}
+					onRemove={() => {}}
+					onMovePending={movePending}
+					onDropPending={dropPending}
+				/>
 			</Field>
 			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
 			<Field label="Slug" hint={t().admin.slugAutoNote}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slugPreview || '—'}<span class="text-accent-strong">-id</span></span></Field>

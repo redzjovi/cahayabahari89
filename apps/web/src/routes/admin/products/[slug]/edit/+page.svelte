@@ -3,7 +3,7 @@
 	import { localize } from '$lib/routes';
 	import { adminSession } from '$lib/admin-session.svelte';
 	import Field from '$lib/components/Field.svelte';
-	import { preview } from '$lib/preview.svelte';
+	import AdminImageGrid from '$lib/components/AdminImageGrid.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount, onDestroy } from 'svelte';
@@ -27,6 +27,7 @@
 	let fStatus = $state('active');
 	let editImages = $state<ImgRow[]>([]);
 	let pending = $state<PendingFile[]>([]);
+	let orderDirty = $state(false);
 	let saving = $state<'idle' | 'product' | 'images'>('idle');
 	const busy = $derived(saving !== 'idle');
 
@@ -57,6 +58,7 @@
 			fCat = p.categoryId === null ? '' : String(p.categoryId);
 			fStatus = p.status;
 			editImages = (p.images ?? []).map((i) => ({ ...i }));
+			orderDirty = false;
 			cats = (await cRes.json()) as CatRow[];
 		} catch {
 			error = t().admin.loadFail;
@@ -98,10 +100,22 @@
 				return;
 			}
 			const updated = (await res.json()) as { slug: string };
+			if (orderDirty && editImages.length > 1) {
+				saving = 'images';
+				const re = await adminSession.api('/api/admin/images/reorder', {
+					method: 'PATCH',
+					body: JSON.stringify({ slug: updated.slug, orderedIds: editImages.map((i) => i.id) })
+				});
+				if (!re.ok) {
+					error = t().admin.reorderFailed;
+					return;
+				}
+				orderDirty = false;
+			}
 			if (pending.length) {
 				saving = 'images';
 				const form = new FormData();
-				form.set('slug', slug);
+				form.set('slug', updated.slug);
 				for (const p of pending) form.append('files[]', p.file);
 				const up = await fetch('/api/admin/images', {
 					method: 'POST',
@@ -132,11 +146,43 @@
 
 	// Stage newly picked files — upload happens on Save so nothing reaches
 	// storage before the user commits (no orphan uploads from abandoned edits).
-	function pickFiles(e: Event) {
-		const input = e.target as HTMLInputElement;
-		if (!input.files?.length) return;
-		for (const f of input.files) pending.push({ file: f, url: URL.createObjectURL(f) });
-		input.value = '';
+	function pickFiles(files: FileList) {
+		for (const f of files) pending.push({ file: f, url: URL.createObjectURL(f) });
+	}
+
+	function moveItem<T>(list: T[], index: number, dir: -1 | 1): T[] {
+		const to = index + dir;
+		if (to < 0 || to >= list.length) return list;
+		const next = [...list];
+		const [item] = next.splice(index, 1);
+		next.splice(to, 0, item);
+		return next;
+	}
+
+	function dropItem<T>(list: T[], from: number, to: number): T[] {
+		if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+		const next = [...list];
+		const [item] = next.splice(from, 1);
+		next.splice(to, 0, item);
+		return next;
+	}
+
+	function movePersisted(index: number, dir: -1 | 1) {
+		editImages = moveItem(editImages, index, dir);
+		orderDirty = true;
+	}
+
+	function dropPersisted(from: number, to: number) {
+		editImages = dropItem(editImages, from, to);
+		orderDirty = true;
+	}
+
+	function movePending(index: number, dir: -1 | 1) {
+		pending = moveItem(pending, index, dir);
+	}
+
+	function dropPending(from: number, to: number) {
+		pending = dropItem(pending, from, to);
 	}
 
 	function unstage(index: number) {
@@ -183,34 +229,19 @@
 		{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
 			<Field label={t().admin.attachImages}>
-				<span class="grid gap-2">
-					<span class="flex flex-wrap gap-2">
-						{#each editImages as img}
-							<span class="relative inline-block overflow-hidden rounded-lg border border-line">
-								{#if img.url}
-									<button type="button" onclick={() => preview.open(img.url, img.alt ?? fName)} aria-label={img.alt ?? fName} class="block transition hover:opacity-90">
-										<img src={img.url} alt={img.alt ?? ''} class="h-16 w-20 object-cover" loading="lazy" />
-									</button>
-								{:else}<span class="flex h-16 w-20 items-center justify-center bg-accent-soft text-[10px] text-accent-strong">no url</span>{/if}
-								<button type="button" onclick={() => removeImage(img.id)} disabled={busy} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white disabled:opacity-50">×</button>
-							</span>
-						{/each}
-						{#each pending as p, i}
-							<span class="relative inline-block overflow-hidden rounded-lg border border-dashed border-brand">
-								<button type="button" onclick={() => preview.open(p.url, p.file.name)} aria-label={p.file.name} class="block transition hover:opacity-90">
-									<img src={p.url} alt={p.file.name} class="h-16 w-20 object-cover" loading="lazy" />
-								</button>
-								<span class="absolute left-1 top-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-brand-ink">{t().admin.pending}</span>
-								<button type="button" onclick={() => unstage(i)} disabled={busy} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white disabled:opacity-50">×</button>
-							</span>
-						{/each}
-					</span>
-					<span class="flex flex-wrap items-center gap-2">
-						<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} disabled={busy} class="w-full text-sm font-normal disabled:opacity-50" />
-						<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
-						{#if pending.length}<span class="text-xs font-bold text-brand">{pending.length} × {t().admin.pending.toLowerCase()}</span>{/if}
-					</span>
-				</span>
+				<AdminImageGrid
+					images={editImages.map((i) => ({ id: i.id, url: i.url, alt: i.alt }))}
+					pending={pending.map((p) => ({ url: p.url, name: p.file.name }))}
+					{busy}
+					nameFallback={fName}
+					onPick={pickFiles}
+					onUnstage={unstage}
+					onRemove={removeImage}
+					onMovePersisted={movePersisted}
+					onMovePending={movePending}
+					onDropPersisted={dropPersisted}
+					onDropPending={dropPending}
+				/>
 			</Field>
 			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
 			<Field label="Slug" hint={t().admin.slugAutoNote}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slug}</span></Field>

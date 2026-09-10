@@ -506,6 +506,39 @@ app.post('/api/admin/images', auth, need('images.write'), async (c) => {
 	return c.json(created, 201);
 });
 
+// Admin: reorder images for a product (RBAC: images.write).
+// Persists the exact order shown in the admin grid — images[0] is the cover.
+app.patch('/api/admin/images/reorder', auth, need('images.write'), async (c) => {
+	const body = await c.req.json().catch(() => null);
+	const parsed = z
+		.object({ slug: z.string().min(1), orderedIds: z.array(z.number().int().positive()).min(1).max(100) })
+		.safeParse(body);
+	if (!parsed.success) return c.json({ error: 'slug and orderedIds[] are required' }, 400);
+	const { slug, orderedIds } = parsed.data;
+	if (new Set(orderedIds).size !== orderedIds.length) return c.json({ error: 'duplicate image ids' }, 400);
+
+	const db = createDb(c.env.DB);
+	const product = await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get();
+	if (!product) return c.json({ error: 'product not found' }, 404);
+
+	const rows = await db
+		.select({ id: productImages.id })
+		.from(productImages)
+		.where(eq(productImages.productId, product.id))
+		.all();
+	if (rows.length !== orderedIds.length) return c.json({ error: 'orderedIds must list every image exactly once' }, 400);
+	const known = new Set(rows.map((r) => r.id));
+	if (!orderedIds.every((id) => known.has(id))) return c.json({ error: 'unknown image id for this product' }, 400);
+
+	for (let i = 0; i < orderedIds.length; i++) {
+		await db
+			.update(productImages)
+			.set({ sort: i })
+			.where(and(eq(productImages.id, orderedIds[i]), eq(productImages.productId, product.id)));
+	}
+	return c.json({ ok: true });
+});
+
 // Admin: remove an image (R2 object + row, RBAC: images.write)
 app.delete('/api/admin/images/:id', auth, need('images.write'), async (c) => {
 	const id = Number(c.req.param('id'));
