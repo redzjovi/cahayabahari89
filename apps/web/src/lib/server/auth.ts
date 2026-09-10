@@ -2,7 +2,10 @@ import { eq, sql } from 'drizzle-orm';
 import { createDb, type DB } from './db';
 import { users, roles, userRoles, rolePermissions, permissions, sessions } from './db/schema';
 
-const PBKDF2_ITERATIONS = 600_000;
+// Cloudflare Workers caps WebCrypto PBKDF2 at 100k iterations (local Node has
+// no cap) — requesting more throws NotSupportedError and 500s auth in prod.
+const PBKDF2_ITERATIONS = 100_000;
+const LEGACY_PBKDF2_ITERATIONS = 600_000;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type Bindings = {
@@ -26,27 +29,50 @@ function unhex(s: string): Uint8Array {
 	return out;
 }
 
-async function pbkdf2(password: string, salt: Uint8Array): Promise<Uint8Array> {
+async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
 	const key = await crypto.subtle.importKey('raw', te.encode(password), 'PBKDF2', false, ['deriveBits']);
 	const bits = await crypto.subtle.deriveBits(
-		{ name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS },
+		{ name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations },
 		key,
 		256
 	);
 	return new Uint8Array(bits);
 }
 
-/** "saltHex$hashHex" — timing-safe compare on verify. */
+/** "pbkdf2$<iterations>$<saltHex>$<hashHex>" — timing-safe compare on verify.
+ * Legacy hashes ("saltHex$hashHex", 600k iterations) still verify so existing
+ * local-dev users keep working; new hashes embed the count explicitly. */
 export async function hashPassword(password: string): Promise<string> {
 	const salt = crypto.getRandomValues(new Uint8Array(16));
-	const hash = await pbkdf2(password, salt);
-	return `${hex(salt)}$${hex(hash)}`;
+	const hash = await pbkdf2(password, salt, PBKDF2_ITERATIONS);
+	return `pbkdf2$${PBKDF2_ITERATIONS}$${hex(salt)}$${hex(hash)}`;
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-	const [saltHex, hashHex] = stored.split('$');
+	let iterations = LEGACY_PBKDF2_ITERATIONS;
+	let saltHex: string;
+	let hashHex: string;
+	const parts = stored.split('$');
+	if (parts.length === 4 && parts[0] === 'pbkdf2') {
+		const parsed = Number(parts[1]);
+		if (!Number.isInteger(parsed) || parsed <= 0) return false;
+		iterations = parsed;
+		saltHex = parts[2];
+		hashHex = parts[3];
+	} else if (parts.length === 2) {
+		[saltHex, hashHex] = parts;
+	} else {
+		return false;
+	}
 	if (!saltHex || !hashHex) return false;
-	const hash = await pbkdf2(password, unhex(saltHex));
+	let hash: Uint8Array;
+	try {
+		hash = await pbkdf2(password, unhex(saltHex), iterations);
+	} catch {
+		// e.g. legacy 600k-iteration hash verified on Workers (100k cap):
+		// fail closed as a wrong password instead of 500ing the request.
+		return false;
+	}
 	const expected = unhex(hashHex);
 	if (hash.length !== expected.length) return false;
 	let diff = 0;
