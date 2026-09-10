@@ -387,10 +387,50 @@ app.delete('/api/admin/categories/:slug', auth, need('categories.write'), async 
 });
 
 // Admin: list contact inquiries (RBAC: leads.read)
-app.get('/api/admin/leads', auth, need('leads.read'), async (c) => {
+const leadsSortSchema = z.enum(['created_asc', 'created_desc', 'name_asc', 'name_desc', 'email_asc', 'email_desc']).default('created_desc');
+const leadsFilterSchema = z.object({
+	name: z.string().trim().min(1).max(200).optional(),
+	email: z.string().trim().min(1).max(254).optional()
+});
+app.get('/api/admin/leads', auth, need('leads.read'), zValidator('query', paginationQuerySchema.extend({ sort: leadsSortSchema }).extend(leadsFilterSchema.shape)), async (c) => {
+	const { sort, page, limit, name, email } = c.req.valid('query');
 	const db = createDb(c.env.DB);
-	const rows = await db.select().from(leads).orderBy(desc(leads.createdAt)).limit(100).all();
-	return c.json(rows);
+	const where = [];
+	if (name) where.push(like(leads.name, `%${name}%`));
+	if (email) where.push(like(leads.email, `%${email}%`));
+	const clause = where.length ? and(...where) : undefined;
+	const total = (await db.select({ count: sql<number>`count(*)` }).from(leads).where(clause).get())?.count ?? 0;
+	const orderBy =
+		sort === 'created_asc'
+			? leads.createdAt
+			: sort === 'created_desc'
+				? desc(leads.createdAt)
+				: sort === 'name_asc'
+					? leads.name
+					: sort === 'name_desc'
+						? desc(leads.name)
+						: sort === 'email_asc'
+							? leads.email
+							: desc(leads.email);
+	const items = await db
+		.select({ id: leads.id, name: leads.name, email: leads.email, company: leads.company, volume: leads.volume, message: leads.message, createdAt: leads.createdAt })
+		.from(leads)
+		.where(clause)
+		.orderBy(orderBy)
+		.limit(limit)
+		.offset((page - 1) * limit)
+		.all();
+	return c.json({ items, total, page, limit });
+});
+
+// Admin: lead detail (RBAC: leads.read)
+app.get('/api/admin/leads/:id', auth, need('leads.read'), async (c) => {
+	const id = Number(c.req.param('id'));
+	if (!Number.isInteger(id)) return c.json({ error: 'invalid id' }, 400);
+	const db = createDb(c.env.DB);
+	const row = await db.select().from(leads).where(eq(leads.id, id)).get();
+	if (!row) return c.json({ error: 'not found' }, 404);
+	return c.json(row);
 });
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

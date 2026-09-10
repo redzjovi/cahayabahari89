@@ -2,13 +2,45 @@
 	import { t, locale } from '$lib/locale.svelte';
 	import { reveal } from '$lib/reveal';
 	import SectionHead from '$lib/components/SectionHead.svelte';
+	import { buildInquiryWhatsAppLink } from '$lib/cart.svelte';
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	let { form } = $props();
 	let submitting = $state(false);
+	let waUrl = $state('');
+
+	let fName = $state('');
+	let fCompany = $state('');
+	let fEmail = $state('');
+	let fMessage = $state('');
 
 	const WA_NUMBER = '6287877118199';
 	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
 	const EMAIL = 'sales@cahayabahari89.id';
+
+	const handleSubmit: SubmitFunction = ({ formData }) => {
+		submitting = true;
+		waUrl = '';
+		// Snapshot BEFORE update(): on success SvelteKit resets the <form>,
+		// which clears the bound inputs — reading them after would send blanks.
+		const snapshot = {
+			name: String(formData.get('name') ?? ''),
+			company: String(formData.get('company') ?? ''),
+			email: String(formData.get('email') ?? ''),
+			volume: String(formData.get('volume') ?? ''),
+			message: String(formData.get('message') ?? '')
+		};
+		return async ({ result, update }) => {
+			await update();
+			submitting = false;
+			// Lead saved → open WhatsApp with the inquiry prefilled.
+			// (Popup blockers may stop this; the success box links it manually.)
+			if (result.type === 'success') {
+				waUrl = buildInquiryWhatsAppLink(snapshot, locale.current);
+				window.open(waUrl, '_blank', 'noopener');
+			}
+		};
+	};
 </script>
 
 <svelte:head><title>{locale.current === 'id' ? 'Kontak' : 'Contact'} — Cahaya Bahari 89</title></svelte:head>
@@ -53,30 +85,29 @@
 	<SectionHead title={t().contact.send} />
 	<div use:reveal class="mt-6">
 		{#if form?.ok}
-			<p class="animate-pop rounded-card bg-emerald-500/10 p-4 font-medium text-emerald-600">{t().contact.ok}</p>
+			<p class="animate-pop rounded-card bg-emerald-500/10 p-4 font-medium text-emerald-600">
+				{t().contact.ok}
+				{#if waUrl}
+					<a href={waUrl} target="_blank" rel="noreferrer" class="ml-2 underline">WhatsApp ↗</a>
+				{/if}
+			</p>
 		{/if}
 		{#if form?.error}
 			<p class="animate-pop rounded-card bg-red-500/10 p-4 font-medium text-red-500">{t().contact.fail}</p>
 		{/if}
 
-		<form method="POST" use:enhance={() => {
-			submitting = true;
-			return async ({ update }) => {
-				await update();
-				submitting = false;
-			};
-		}} class="mt-2 grid gap-3 sm:grid-cols-2">
+		<form method="POST" use:enhance={handleSubmit} class="mt-2 grid gap-3 sm:grid-cols-2">
 			<label class="grid gap-1.5 text-sm font-semibold">
 				{t().contact.name}
-				<input name="name" required minlength="2" class="rounded-card border px-4 py-2.5 font-normal" />
+				<input name="name" bind:value={fName} required minlength="2" class="rounded-card border px-4 py-2.5 font-normal" />
 			</label>
 			<label class="grid gap-1.5 text-sm font-semibold">
 				{t().contact.company}
-				<input name="company" class="rounded-card border px-4 py-2.5 font-normal" />
+				<input name="company" bind:value={fCompany} class="rounded-card border px-4 py-2.5 font-normal" />
 			</label>
 			<label class="grid gap-1.5 text-sm font-semibold">
 				{t().contact.email}
-				<input name="email" type="email" required class="rounded-card border px-4 py-2.5 font-normal" />
+				<input name="email" type="email" bind:value={fEmail} required class="rounded-card border px-4 py-2.5 font-normal" />
 			</label>
 			<label class="grid gap-1.5 text-sm font-semibold">
 				{t().contact.volume}
@@ -88,7 +119,7 @@
 			</label>
 			<label class="grid gap-1.5 text-sm font-semibold sm:col-span-2">
 				{t().contact.message}
-				<textarea name="message" required minlength="10" rows="5" class="rounded-card border px-4 py-2.5 font-normal"></textarea>
+				<textarea name="message" bind:value={fMessage} required minlength="10" rows="5" class="rounded-card border px-4 py-2.5 font-normal"></textarea>
 			</label>
 		<div class="sm:col-span-2">
 				<button type="submit" disabled={submitting} class="rounded-full bg-brand px-6 py-2.5 font-bold text-brand-ink transition hover:brightness-110 disabled:opacity-60">
@@ -101,6 +132,7 @@
 						{t().contact.send}
 					{/if}
 				</button>
+				<p class="mt-2 text-xs text-muted">{t().contact.direct}</p>
 		</div>
 		</form>
 	</div>

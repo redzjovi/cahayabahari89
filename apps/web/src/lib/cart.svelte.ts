@@ -116,4 +116,26 @@ export function buildSingleWhatsAppLink(productName: string, productSlug: string
 	return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
+export type InquiryFields = {
+	name: string;
+	company: string;
+	email: string;
+	volume: string;
+	message: string;
+};
+
+export function buildInquiryWhatsAppLink(f: InquiryFields, locale: 'en' | 'id'): string {
+	const lines = [
+		f.company ? `${f.name} (${f.company})` : f.name,
+		`Email: ${f.email}`,
+		`${locale === 'id' ? 'Volume bulanan' : 'Monthly volume'}: ${f.volume}`
+	];
+	const head =
+		locale === 'id'
+			? `Halo Cahaya Bahari 89, saya ingin bertanya:\n\n`
+			: `Hello Cahaya Bahari 89, I have an inquiry:\n\n`;
+	const message = head + lines.join('\n') + `\n\n${f.message}`;
+	return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 export { WA_NUMBER };

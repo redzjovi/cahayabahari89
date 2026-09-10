@@ -19,6 +19,7 @@
 		const all = [
 			{ href: '/admin/products', label: () => t().admin.productsTitle, show: adminSession.can('products.write') },
 			{ href: '/admin/categories', label: () => t().admin.categoriesTitle, show: adminSession.can('categories.write') },
+			{ href: '/admin/leads', label: () => t().admin.leads, show: adminSession.can('leads.read') },
 			{ href: '/admin/users', label: () => t().admin.users, show: adminSession.can('users.manage') },
 			{ href: '/admin/roles', label: () => t().admin.roles, show: adminSession.can('roles.manage') },
 			{ href: '/admin/permissions', label: () => t().admin.permissionsTitle, show: adminSession.can('roles.manage') }
