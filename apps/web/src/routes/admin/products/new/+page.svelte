@@ -143,7 +143,7 @@
 							{#each pending as p, i}
 								<span class="relative inline-block overflow-hidden rounded-lg border border-dashed border-brand">
 									<button type="button" onclick={() => preview.open(p.url, p.file.name)} aria-label={p.file.name} class="block transition hover:opacity-90">
-										<img src={p.url} alt={p.file.name} class="h-16 w-20 object-cover" />
+										<img src={p.url} alt={p.file.name} class="h-16 w-20 object-cover" loading="lazy" />
 									</button>
 									<button type="button" onclick={() => unstage(i)} disabled={busy} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white disabled:opacity-50">×</button>
 								</span>

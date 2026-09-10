@@ -83,7 +83,7 @@
 							<div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-24">
 								{#if item.imageUrl}
 									<button type="button" onclick={() => preview.open(item.imageUrl, item.name)} aria-label={item.name} class="block h-full w-full transition hover:opacity-90">
-										<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" />
+										<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" loading="lazy" />
 									</button>
 								{:else}
 									<PhotoPlaceholder label={item.name} aspect="aspect-square" rounded={false} />

@@ -97,7 +97,7 @@
 					class="overflow-hidden rounded-card border border-line bg-surface shadow-card"
 				>
 					<button type="button" onclick={openGallery} aria-label={`${t().detail.viewLarger}: ${p.name}`} class="block w-full cursor-zoom-in">
-						<img src={current.url} alt={current.alt ?? p.name} class="aspect-[4/3] w-full object-cover" loading="eager" />
+						<img src={current.url} alt={current.alt ?? p.name} class="aspect-[4/3] w-full object-cover" loading="eager" fetchpriority="high" />
 					</button>
 				</div>
 				{#if gallery.length > 1}
