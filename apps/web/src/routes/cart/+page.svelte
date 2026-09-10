@@ -4,6 +4,7 @@
 	import { cart, cartTotal, buildCartWhatsAppLink } from '$lib/cart.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
 	import SectionHead from '$lib/components/SectionHead.svelte';
+	import { preview } from '$lib/preview.svelte';
 
 	let { data } = $props();
 	let selected = $state(new Set<string>());
@@ -81,14 +82,18 @@
 							<input type="checkbox" checked={selected.has(item.slug)} onchange={() => toggle(item.slug)} class="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-line accent-brand" />
 							<div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-24">
 								{#if item.imageUrl}
-									<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" />
+									<button type="button" onclick={() => preview.open(item.imageUrl, item.name)} aria-label={item.name} class="block h-full w-full transition hover:opacity-90">
+										<img src={item.imageUrl} alt={item.name} class="h-full w-full object-cover" />
+									</button>
 								{:else}
 									<PhotoPlaceholder label={item.name} aspect="aspect-square" rounded={false} />
 								{/if}
 							</div>
 						</div>
 						<div class="flex flex-1 flex-col gap-2">
-							<h3 class="font-display text-sm font-bold md:text-lg">{item.name}</h3>
+							<h3 class="font-display text-sm font-bold md:text-lg">
+								<a href={localize(`/products/${item.slug}`, locale.current)} class="transition hover:text-brand">{item.name}</a>
+							</h3>
 							<div class="flex items-center justify-between gap-2">
 								<p class="text-sm text-muted">Rp {idr(item.price)}</p>
 								<div class="flex items-center gap-1 rounded-full border border-line">

@@ -6,6 +6,7 @@
 	import { cart, buildSingleWhatsAppLink } from '$lib/cart.svelte';
 	import ProductCard from '$lib/components/ProductCard.svelte';
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
+	import { preview } from '$lib/preview.svelte';
 
 	let { data } = $props();
 	const p = $derived(data.product as any);
@@ -14,7 +15,18 @@
 	let justAdded = $state(false);
 	let qty = $state(1);
 
+	function openGallery() {
+		const items = gallery
+			.filter((g) => g.url)
+			.map((g) => ({ src: g.url as string, alt: g.alt ?? p.name }));
+		if (!items.length) return;
+		const urls = items.map((i) => i.src);
+		const currentUrl = gallery[Math.min(selected, gallery.length - 1)]?.url;
+		preview.openList(items, Math.max(urls.indexOf(currentUrl ?? ''), 0));
+	}
+
 	function thumbKeys(e: KeyboardEvent, i: number) {
+		if (preview.current) return; // lightbox owns arrow keys while open
 		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
 		e.preventDefault();
 		const n = (i + (e.key === 'ArrowRight' ? 1 : -1) + gallery.length) % gallery.length;
@@ -84,7 +96,9 @@
 					aria-live="polite"
 					class="overflow-hidden rounded-card border border-line bg-surface shadow-card"
 				>
-					<img src={current.url} alt={current.alt ?? p.name} class="aspect-[4/3] w-full object-cover" loading="eager" />
+					<button type="button" onclick={openGallery} aria-label={`${t().detail.viewLarger}: ${p.name}`} class="block w-full cursor-zoom-in">
+						<img src={current.url} alt={current.alt ?? p.name} class="aspect-[4/3] w-full object-cover" loading="eager" />
+					</button>
 				</div>
 				{#if gallery.length > 1}
 					<div class="mt-3 flex gap-3 overflow-x-auto pb-1" role="tablist" aria-label="Product images">

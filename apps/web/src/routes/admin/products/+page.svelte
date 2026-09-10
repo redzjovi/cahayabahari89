@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
+	import { preview } from '$lib/preview.svelte';
 
 	type ProductRow = {
 		id: number; slug: string; sku: string | null; name: string; description: string | null;
@@ -306,12 +307,14 @@
 								<td class="px-4 py-2.5">
 									<span class="flex items-center gap-3">
 										{#if p.image?.url}
-											<img src={p.image.url} alt="" class="h-10 w-14 shrink-0 rounded-lg border border-line object-cover" loading="lazy" />
+											<button type="button" onclick={() => preview.open(p.image!.url, p.name)} aria-label={p.name} class="shrink-0 rounded-lg transition hover:opacity-90">
+												<img src={p.image.url} alt="" class="h-10 w-14 rounded-lg border border-line object-cover" loading="lazy" />
+											</button>
 										{:else}
 											<span class="flex h-10 w-14 shrink-0 items-center justify-center rounded-lg border border-line bg-accent-soft text-[10px] font-bold text-accent-strong" aria-hidden="true">—</span>
 										{/if}
 										<span class="min-w-0">
-											<span class="block truncate font-semibold">{p.name}</span>
+											<a href={localize(`/products/${p.slug}`, locale.current)} target="_blank" rel="noreferrer" class="block truncate font-semibold transition hover:text-brand" title={p.name}>{p.name}</a>
 											<span class="block truncate font-mono text-xs font-normal text-muted">SKU: {p.sku ?? '—'}</span>
 											<span class="block truncate text-xs font-normal text-muted">{t().admin.categoryCol}: {cats.find((c) => c.id === p.categoryId)?.name ?? '—'}</span>
 										</span>

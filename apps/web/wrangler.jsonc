@@ -21,7 +21,5 @@
 			"bucket_name": "cahayabahari89-images"
 		}
 	],
-	"vars": {
-		"IMAGES_URL": ""
-	}
+	"vars": {}
 }

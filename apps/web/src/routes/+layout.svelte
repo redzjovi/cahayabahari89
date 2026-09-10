@@ -3,6 +3,7 @@
 	import ThemePicker from '$lib/components/ThemePicker.svelte';
 	import LangToggle from '$lib/components/LangToggle.svelte';
 	import FishMark from '$lib/components/FishMark.svelte';
+	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
 	import { t, locale } from '$lib/locale.svelte';
 	import { localize, parseLocalized } from '$lib/routes';
 	import { cartQty } from '$lib/cart.svelte';
@@ -178,3 +179,4 @@
 	</div>
 </footer>
 {/if}
+<ImageLightbox />

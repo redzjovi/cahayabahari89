@@ -5,9 +5,11 @@
 	import Field from '$lib/components/Field.svelte';
 	import { slugify } from '$lib/slug';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { preview } from '$lib/preview.svelte';
 
 	type CatRow = { id: number; slug: string; name: string };
+	type PendingFile = { file: File; url: string };
 
 	let cats = $state<CatRow[]>([]);
 	let error = $state('');
@@ -19,8 +21,10 @@
 	let fPrice = $state('');
 	let fCat = $state('');
 	let fStatus = $state('active');
-	let pendingFiles = $state<File[]>([]);
+	let pending = $state<PendingFile[]>([]);
 	let createdSlug: string | null = $state(null);
+	let saving = $state<'idle' | 'product' | 'images'>('idle');
+	const busy = $derived(saving !== 'idle');
 
 	const canView = $derived(adminSession.can('products.write'));
 
@@ -48,6 +52,7 @@
 
 	async function save(e: SubmitEvent) {
 		e.preventDefault();
+		if (busy) return;
 		error = '';
 		if (!slugPreview) {
 			error = t().admin.invalidName;
@@ -62,16 +67,18 @@
 		};
 		if (fSku.trim() !== '') payload.sku = fSku.trim();
 		try {
+			saving = 'product';
 			const res = await adminSession.api('/api/admin/products', { method: 'POST', body: JSON.stringify(payload) });
 			if (!res.ok) {
 				error = apiError(await res.json());
 				return;
 			}
 			const created = (await res.json()) as { slug: string };
-			if (pendingFiles.length) {
+			if (pending.length) {
+				saving = 'images';
 				const form = new FormData();
 				form.set('slug', created.slug);
-				for (const f of pendingFiles) form.append('files[]', f);
+				for (const p of pending) form.append('files[]', p.file);
 				const up = await fetch('/api/admin/images', {
 					method: 'POST',
 					headers: { authorization: adminSession.authHeader() },
@@ -89,13 +96,26 @@
 			await goto(localize('/admin/products', locale.current));
 		} catch {
 			error = t().admin.loadFail;
+		} finally {
+			saving = 'idle';
 		}
 	}
 
 	function pickFiles(e: Event) {
 		const input = e.target as HTMLInputElement;
-		pendingFiles = input.files ? [...input.files] : [];
+		if (!input.files) return;
+		for (const f of input.files) pending.push({ file: f, url: URL.createObjectURL(f) });
+		input.value = '';
 	}
+
+	function unstage(index: number) {
+		const [removed] = pending.splice(index, 1);
+		if (removed) URL.revokeObjectURL(removed.url);
+	}
+
+	onDestroy(() => {
+		for (const p of pending) URL.revokeObjectURL(p.url);
+	});
 </script>
 
 <svelte:head><title>{t().admin.newProduct} — Admin</title></svelte:head>
@@ -118,9 +138,21 @@
 		<form onsubmit={save} class="mt-6 grid gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
 			<Field label={t().admin.attachImages}>
 				<span class="grid gap-1.5">
-					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} class="w-full text-sm font-normal" />
-					{#if pendingFiles.length}
-						<span class="text-xs font-normal text-muted">{pendingFiles.length} × {pendingFiles.map((f) => f.name).join(', ')}</span>
+					{#if pending.length}
+						<span class="flex flex-wrap gap-2">
+							{#each pending as p, i}
+								<span class="relative inline-block overflow-hidden rounded-lg border border-dashed border-brand">
+									<button type="button" onclick={() => preview.open(p.url, p.file.name)} aria-label={p.file.name} class="block transition hover:opacity-90">
+										<img src={p.url} alt={p.file.name} class="h-16 w-20 object-cover" />
+									</button>
+									<button type="button" onclick={() => unstage(i)} disabled={busy} aria-label={t().admin.removeImage} class="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white disabled:opacity-50">×</button>
+								</span>
+							{/each}
+						</span>
+					{/if}
+					<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onchange={pickFiles} disabled={busy} class="w-full text-sm font-normal disabled:opacity-50" />
+					{#if pending.length}
+						<span class="text-xs font-normal text-muted">{pending.length} × {pending.map((p) => p.file.name).join(', ')}</span>
 					{:else}
 						<span class="text-xs font-normal text-muted">{t().admin.uploadHint}</span>
 					{/if}
@@ -144,7 +176,9 @@
 				</select>
 			</Field>
 			<div class="flex gap-2 sm:pl-[196px]">
-				<button type="submit" class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink">{t().admin.create}</button>
+				<button type="submit" disabled={busy} class="rounded-full bg-brand px-5 py-2 font-bold text-brand-ink disabled:opacity-60">
+					{saving === 'images' ? t().admin.uploading : saving === 'product' ? t().admin.saving : t().admin.create}
+				</button>
 				<a href={localize('/admin/products', locale.current)} class="rounded-full border border-line px-5 py-2 text-sm font-bold">{t().admin.cancel}</a>
 			</div>
 		</form>

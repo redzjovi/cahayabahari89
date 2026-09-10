@@ -105,7 +105,10 @@ const en = {
 		ask: 'Ask about this product',
 		specs: 'Specifications',
 		related: 'You may also like',
-		noDesc: 'No description yet.'
+		noDesc: 'No description yet.',
+		viewLarger: 'View larger',
+		prevImage: 'Previous image',
+		nextImage: 'Next image'
 	},
 	contact: {
 		eyebrow: 'Contact',
@@ -224,6 +227,10 @@ const en = {
 		removeImage: 'Remove',
 		uploadHint: 'JPEG/PNG/WebP/AVIF, max 5 MB each.',
 		uploadPartial: 'Product created, but image upload failed. Attach them on the edit page.',
+		saving: 'Saving…',
+		uploading: 'Uploading images…',
+		pending: 'Pending upload',
+		uploadFailed: 'Image upload failed. Staged files are kept — try saving again.',
 		slugAutoNote: 'Auto-generated on save as name + product ID.',
 		invalidName: 'Name must contain latin letters or digits.'
 	}
@@ -333,7 +340,10 @@ const id: Dict = {
 		ask: 'Tanya produk ini',
 		specs: 'Spesifikasi',
 		related: 'Mungkin Anda suka',
-		noDesc: 'Belum ada deskripsi.'
+		noDesc: 'Belum ada deskripsi.',
+		viewLarger: 'Lihat lebih besar',
+		prevImage: 'Gambar sebelumnya',
+		nextImage: 'Gambar berikutnya'
 	},
 	contact: {
 		eyebrow: 'Kontak',
@@ -452,6 +462,10 @@ const id: Dict = {
 		removeImage: 'Hapus',
 		uploadHint: 'JPEG/PNG/WebP/AVIF, maks 5 MB per file.',
 		uploadPartial: 'Produk dibuat, tetapi unggah foto gagal. Lampirkan di halaman ubah.',
+		saving: 'Menyimpan…',
+		uploading: 'Mengunggah gambar…',
+		pending: 'Antre unggah',
+		uploadFailed: 'Unggah gambar gagal. File yang disiapkan tetap ada — coba simpan lagi.',
 		slugAutoNote: 'Dibuat otomatis saat simpan sebagai nama + ID produk.',
 		invalidName: 'Nama harus mengandung huruf latin atau angka.'
 	}

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq, like, and, desc, sql } from 'drizzle-orm';
+import { eq, like, and, desc, inArray, sql } from 'drizzle-orm';
 import { createDb } from './db';
 import { products, categories, productImages, leads, users, roles, permissions, userRoles, rolePermissions, productSlugRedirects } from './db/schema';
 import { slugify, productSlug } from '../slug';
@@ -25,10 +25,11 @@ const slugRule = z
 	.max(60)
 	.regex(/^[a-z0-9._-]+$/, 'lowercase letters, numbers, dot, underscore, dash only');
 
-/** Build the public URL for an R2 key. Empty base (unset IMAGES_URL) -> '' so UI falls back to placeholders. */
+/** Build the public URL for an R2 key. Falls back to the same-origin serving
+ * route when IMAGES_URL is unset (local dev), so uploads are viewable everywhere. */
 export function imageUrl(env: Bindings, r2Key: string): string {
 	const base = (env.IMAGES_URL ?? '').replace(/\/+$/, '');
-	return base ? `${base}/${r2Key}` : '';
+	return base ? `${base}/${r2Key}` : `/api/images/${r2Key}`;
 }
 
 type Env = { Bindings: Bindings; Variables: { user: SessionUser } };
@@ -53,6 +54,21 @@ function need(perm: string) {
 
 // Health
 app.get('/api/health', (c) => c.json({ ok: true, time: new Date().toISOString() }));
+
+// Public image serving (same origin). Used when IMAGES_URL is unset (local dev),
+// so uploads are viewable without a custom image domain. R2 keys are UUID-unique
+// per upload, so immutable long caching is safe (replaced images get new URLs).
+app.get('/api/images/:key{.+$}', async (c) => {
+	const key = c.req.param('key');
+	if (!key.startsWith('products/') || key.includes('..')) return c.json({ error: 'not found' }, 404);
+	const obj = await c.env.IMAGES.get(key);
+	if (!obj) return c.json({ error: 'not found' }, 404);
+	const headers = new Headers();
+	headers.set('content-type', obj.httpMetadata?.contentType ?? 'application/octet-stream');
+	headers.set('cache-control', 'public, max-age=31536000, immutable');
+	if (obj.httpEtag) headers.set('etag', obj.httpEtag);
+	return new Response(obj.body, { headers });
+});
 
 // Categories
 // Shared pagination query shape for admin list endpoints.
@@ -410,23 +426,42 @@ app.post('/api/admin/images', auth, need('images.write'), async (c) => {
 	let sort = (existing?.sort ?? -1) + 1;
 
 	const created = [];
+	const createdKeys: string[] = [];
+	// Validate every file BEFORE storing anything — a mid-batch failure must
+	// not leave orphan R2 objects (or rows) behind.
 	for (const f of files) {
 		if (!(f instanceof File)) return c.json({ error: 'invalid file part' }, 400);
 		if (!ALLOWED_IMAGE_TYPES.includes(f.type)) {
 			return c.json({ error: `unsupported type ${f.type || 'unknown'} (jpeg/png/webp/avif only)` }, 400);
 		}
 		if (f.size > MAX_IMAGE_BYTES) return c.json({ error: `${f.name} exceeds 5 MB` }, 400);
-		const key = `products/${slug}/${crypto.randomUUID()}.${extFor(f.type)}`;
-		await c.env.IMAGES.put(key, f.stream(), {
-			httpMetadata: { contentType: f.type },
-			customMetadata: { slug }
-		});
-		const [row] = await db
-			.insert(productImages)
-			.values({ productId: product.id, r2Key: key, alt: f.name || slug, sort })
-			.returning();
-		created.push({ ...row, url: imageUrl(c.env, key) });
-		sort++;
+	}
+	try {
+		for (const f of files as File[]) {
+			const key = `products/${slug}/${crypto.randomUUID()}.${extFor(f.type)}`;
+			// Pass the File (Blob) itself, not f.stream(): miniflare's local R2
+			// requires a known-length body, which a detached stream doesn't have.
+			// Workerd's R2 accepts Blob values identically, so prod is unaffected.
+			await c.env.IMAGES.put(key, f, {
+				httpMetadata: { contentType: f.type },
+				customMetadata: { slug }
+			});
+			createdKeys.push(key);
+			const [row] = await db
+				.insert(productImages)
+				.values({ productId: product.id, r2Key: key, alt: f.name || slug, sort })
+				.returning();
+			created.push({ ...row, url: imageUrl(c.env, key) });
+			sort++;
+		}
+	} catch (e) {
+		// Roll back anything this batch stored: R2 objects first, then rows.
+		console.error('[images] batch upload failed:', e);
+		await Promise.all(createdKeys.map((k) => c.env.IMAGES.delete(k).catch(() => {})));
+		if (createdKeys.length) {
+			await db.delete(productImages).where(inArray(productImages.r2Key, createdKeys)).catch(() => {});
+		}
+		return c.json({ error: 'upload failed, partial files cleaned up' }, 500);
 	}
 	return c.json(created, 201);
 });
