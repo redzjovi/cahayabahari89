@@ -53,9 +53,9 @@
 		try {
 			const res = await adminSession.api(`/api/admin/users?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { items: UserRow[]; total: number };
-			items = data.items;
-			total = data.total;
+			const data = (await res.json()) as { data: UserRow[]; meta: { total: number } };
+			items = data.data;
+			total = data.meta.total;
 			if (items.length === 0 && currentPage > 1) {
 				currentPage = 1;
 				await gotoSamePage(buildSearch({

@@ -29,7 +29,7 @@
 		try {
 			const [rRes, pRes] = await Promise.all([adminSession.api('/api/admin/roles'), adminSession.api('/api/admin/permissions')]);
 			if (!rRes.ok || !pRes.ok) throw new Error('load');
-			const rows = (await rRes.json()) as { slug: string; name: string; permissions: string[] }[];
+			const rows = ((await rRes.json()) as { data: { slug: string; name: string; permissions: string[] }[] }).data;
 			const found = rows.find((r) => r.slug === slug);
 			if (!found) {
 				notFound = true;
@@ -37,7 +37,7 @@
 			}
 			rName = found.name;
 			ePerms = [...found.permissions];
-			perms = (await pRes.json()) as { slug: string; name: string }[];
+			perms = ((await pRes.json()) as { data: { slug: string; name: string }[] }).data;
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -46,7 +46,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
 	}

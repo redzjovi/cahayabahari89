@@ -29,9 +29,9 @@
 		try {
 			const res = await adminSession.api(`/api/admin/roles?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { items: RoleRow[]; total: number };
-			items = data.items;
-			total = data.total;
+			const data = (await res.json()) as { data: RoleRow[]; meta: { total: number } };
+			items = data.data;
+			total = data.meta.total;
 			if (items.length === 0 && currentPage > 1) {
 				currentPage = 1;
 				await gotoSamePage(buildSearch({ page: 1, limit: pageSize }));
@@ -54,7 +54,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('assigned')) return t().admin.roleDeleteBlocked;
 		return e || t().admin.loadFail;
 	}

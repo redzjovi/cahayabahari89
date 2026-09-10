@@ -47,10 +47,10 @@
 				return;
 			}
 			if (!cRes.ok) throw new Error('load');
-			const p = (await pRes.json()) as {
+			const p = ((await pRes.json()) as { data: {
 				sku: string | null; name: string; description: string | null; price: number;
 				categoryId: number | null; status: string; images: ImgRow[];
-			};
+			} }).data;
 			fSku = p.sku ?? '';
 			fName = p.name;
 			fDesc = p.description ?? '';
@@ -59,7 +59,7 @@
 			fStatus = p.status;
 			editImages = (p.images ?? []).map((i) => ({ ...i }));
 			orderDirty = false;
-			cats = (await cRes.json()) as CatRow[];
+			cats = ((await cRes.json()) as { data: CatRow[] }).data;
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -75,7 +75,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
 	}
@@ -99,7 +100,7 @@
 				error = apiError(await res.json());
 				return;
 			}
-			const updated = (await res.json()) as { slug: string };
+			const updated = ((await res.json()) as { data: { slug: string } }).data;
 			if (orderDirty && editImages.length > 1) {
 				saving = 'images';
 				const re = await adminSession.api('/api/admin/images/reorder', {
@@ -127,7 +128,7 @@
 					error = t().admin.uploadFailed;
 					return;
 				}
-				const rows = (await up.json()) as ImgRow[];
+				const rows = ((await up.json()) as { data: ImgRow[] }).data;
 				editImages = [...editImages, ...rows];
 				clearPending();
 			}

@@ -58,9 +58,9 @@
 		try {
 			const res = await adminSession.api(`/api/admin/leads?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { items: LeadRow[]; total: number };
-			items = data.items;
-			total = data.total;
+			const data = (await res.json()) as { data: LeadRow[]; meta: { total: number } };
+			items = data.data;
+			total = data.meta.total;
 			if (items.length === 0 && currentPage > 1) {
 				currentPage = 1;
 				await gotoSamePage(buildSearch({

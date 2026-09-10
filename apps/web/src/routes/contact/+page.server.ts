@@ -17,8 +17,8 @@ export const actions: Actions = {
 			body: JSON.stringify(payload)
 		});
 		if (!res.ok) {
-			const err = (await res.json().catch(() => ({}))) as { error?: unknown };
-			return { error: err.error ? JSON.stringify(err.error) : 'Failed to send', ok: false };
+			const err = (await res.json().catch(() => ({}))) as { message?: unknown; errors?: Record<string, string[]> };
+			return { error: err.message ? JSON.stringify(err.message) : err.errors ? JSON.stringify(err.errors) : 'Failed to send', ok: false };
 		}
 		return { ok: true };
 	}

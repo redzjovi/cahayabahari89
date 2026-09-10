@@ -26,7 +26,7 @@
 		try {
 			const res = await adminSession.api('/api/categories');
 			if (!res.ok) throw new Error('load');
-			const rows = (await res.json()) as { slug: string; name: string }[];
+			const rows = ((await res.json()) as { data: { slug: string; name: string }[] }).data;
 			const row = rows.find((r) => r.slug === slug);
 			if (!row) {
 				notFound = true;
@@ -49,7 +49,8 @@
 				body: JSON.stringify({ name: cName })
 			});
 			if (!res.ok) {
-				const err = ((await res.json()) as { error?: string }).error ?? '';
+				const ej = (await res.json()) as { message?: string; errors?: Record<string, string | string[]> };
+				const err = ej.message ?? Object.values(ej.errors ?? {}).flat().join(' ') ?? '';
 				error = err || t().admin.loadFail;
 				return;
 			}

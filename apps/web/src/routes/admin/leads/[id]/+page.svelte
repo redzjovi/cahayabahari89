@@ -52,7 +52,7 @@
 				return;
 			}
 			if (!res.ok) throw new Error('load');
-			lead = (await res.json()) as LeadRow;
+			lead = ((await res.json()) as { data: LeadRow }).data;
 		} catch {
 			error = t().admin.loadFail;
 		} finally {

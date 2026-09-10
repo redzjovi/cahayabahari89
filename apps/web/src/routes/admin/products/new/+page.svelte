@@ -34,7 +34,7 @@
 		if (!canView) return;
 		try {
 			const res = await adminSession.api('/api/categories');
-			if (res.ok) cats = (await res.json()) as CatRow[];
+			if (res.ok) cats = ((await res.json()) as { data: CatRow[] }).data;
 		} catch {
 			// categories optional for the form
 		}
@@ -42,7 +42,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('already exists')) return t().admin.duplicate;
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
@@ -73,7 +74,7 @@
 				error = apiError(await res.json());
 				return;
 			}
-			const created = (await res.json()) as { slug: string };
+			const created = ((await res.json()) as { data: { slug: string } }).data;
 			if (pending.length) {
 				saving = 'images';
 				const form = new FormData();

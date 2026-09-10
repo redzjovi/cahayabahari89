@@ -32,8 +32,8 @@
 				error = t().admin.badCredentials;
 				return;
 			}
-			const body = (await res.json()) as { token: string };
-			adminSession.setToken(body.token);
+			const body = (await res.json()) as { data: { token: string } };
+			adminSession.setToken(body.data.token);
 			await goto(localize('/admin/users', data.locale));
 		} finally {
 			busy = false;

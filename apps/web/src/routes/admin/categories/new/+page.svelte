@@ -20,7 +20,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('already exists')) return t().admin.duplicate;
 		return e || t().admin.loadFail;
 	}

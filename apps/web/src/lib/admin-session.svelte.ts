@@ -63,7 +63,8 @@ class AdminSession {
 				this.user = null;
 				return false;
 			}
-			this.user = (await res.json()) as AdminUser;
+			const body = (await res.json()) as { data: AdminUser };
+			this.user = body.data;
 			return true;
 		} catch {
 			this.user = null;

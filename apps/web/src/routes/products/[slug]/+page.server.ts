@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 		throw redirect(301, path.join('/') + url.search);
 	}
 	if (!res.ok) throw error(404, 'Product not found');
-	const product = (await res.json()) as { categoryId?: number | null; category?: { slug: string } | null; slug: string };
+	const body = (await res.json()) as { data: { categoryId?: number | null; category?: { slug: string } | null; slug: string } };
+	const product = body.data;
 
 	// The API 301s renamed slugs to the current one (fetch follows silently).
 	// Detect it via res.url and surface a page-level 301 so the browser
@@ -33,15 +34,15 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 		if (cat) {
 			const r = await fetch(`/api/products?cat=${encodeURIComponent(cat)}&limit=4`);
 			if (r.ok) {
-				const data = (await r.json()) as { items: { slug: string }[] };
-				related = (data.items ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
+				const data = (await r.json()) as { data: { slug: string }[] };
+				related = (data.data ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
 			}
 		}
 		if (!related.length) {
 			const r = await fetch('/api/products?limit=4');
 			if (r.ok) {
-				const data = (await r.json()) as { items: { slug: string }[] };
-				related = (data.items ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
+				const data = (await r.json()) as { data: { slug: string }[] };
+				related = (data.data ?? []).filter((p) => p.slug !== product.slug).slice(0, 3);
 			}
 		}
 	} catch {

@@ -22,7 +22,7 @@
 		if (!canView) return;
 		try {
 			const res = await adminSession.api('/api/admin/permissions');
-			if (res.ok) perms = (await res.json()) as { slug: string; name: string }[];
+			if (res.ok) perms = ((await res.json()) as { data: { slug: string; name: string }[] }).data;
 		} catch {
 			// optional for the form
 		}
@@ -30,7 +30,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('already exists')) return t().admin.duplicate;
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;

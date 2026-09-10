@@ -29,7 +29,7 @@
 		try {
 			const [uRes, rRes] = await Promise.all([adminSession.api('/api/admin/users'), adminSession.api('/api/admin/roles')]);
 			if (!uRes.ok || !rRes.ok) throw new Error('load');
-			const all = (await uRes.json()) as { id: number; email: string; name: string; status: string; roles: string[] }[];
+			const all = ((await uRes.json()) as { data: { id: number; email: string; name: string; status: string; roles: string[] }[] }).data;
 			const found = all.find((u) => u.id === id);
 			if (!found) {
 				notFound = true;
@@ -39,7 +39,7 @@
 			fName = found.name;
 			fStatus = found.status;
 			fRoles = [...found.roles];
-			roles = (((await rRes.json()) as { slug: string; name: string }[])).map((r) => ({ slug: r.slug, name: r.name }));
+			roles = (((await rRes.json()) as { data: { slug: string; name: string }[] }).data).map((r) => ({ slug: r.slug, name: r.name }));
 		} catch {
 			error = t().admin.loadFail;
 		} finally {
@@ -55,7 +55,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
 	}

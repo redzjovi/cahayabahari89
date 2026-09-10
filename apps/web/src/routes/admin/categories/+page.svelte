@@ -56,20 +56,20 @@
 		try {
 			const res = await adminSession.api(`/api/categories?${params.toString()}`);
 			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { items: CatRow[]; total: number };
-			const rows = data.items;
+			const data = (await res.json()) as { data: CatRow[]; meta: { total: number } };
+			const rows = data.data;
 			items = await Promise.all(
 				rows.map(async (c) => {
 					try {
 						const r = await adminSession.api(`/api/products?cat=${encodeURIComponent(c.slug)}&limit=1`);
-						const d = (await r.json()) as { total: number };
-						return { ...c, products: d.total ?? 0 };
+						const d = (await r.json()) as { data: unknown[]; meta: { total: number } };
+						return { ...c, products: d.meta.total ?? 0 };
 					} catch {
 						return { ...c, products: 0 };
 					}
 				})
 			);
-			total = data.total;
+			total = data.meta.total;
 			if (rows.length === 0 && currentPage > 1) {
 				currentPage = 1;
 				await gotoSamePage(currentSearchHref());
@@ -98,7 +98,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('used by products')) return t().admin.categoryDeleteBlocked;
 		return e || t().admin.loadFail;
 	}

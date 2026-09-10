@@ -80,10 +80,10 @@
 				adminSession.api('/api/categories?page=1&limit=100')
 			]);
 			if (!pRes.ok || !cRes.ok) throw new Error('load');
-			const data = (await pRes.json()) as { items: ProductRow[]; total: number };
-			items = data.items;
-			total = data.total;
-			cats = ((await cRes.json()) as { items: CatRow[] }).items;
+			const data = (await pRes.json()) as { data: ProductRow[]; meta: { total: number } };
+			items = data.data;
+			total = data.meta.total;
+			cats = ((await cRes.json()) as { data: CatRow[] }).data;
 			// snap back: if the requested page is now empty, jump to page 1
 			if (items.length === 0 && currentPage > 1) {
 				currentPage = 1;
@@ -119,7 +119,8 @@
 	});
 
 	function apiError(json: unknown): string {
-		const e = (json as { error?: string }).error ?? '';
+		const j = json as { message?: string; errors?: Record<string, string | string[]> };
+		const e = j.message ?? Object.values(j.errors ?? {}).flat().join(' ') ?? '';
 		if (e.includes('already exists')) return t().admin.duplicate;
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
