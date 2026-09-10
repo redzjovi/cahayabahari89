@@ -12,6 +12,16 @@
 	let { children, data } = $props();
 	let menuOpen = $state(false);
 	let cartPulse = $state(false);
+	let showTop = $state(false);
+
+	$effect(() => {
+		const onScroll = () => {
+			showTop = window.scrollY > 400;
+		};
+		onScroll();
+		window.addEventListener('scroll', onScroll, { passive: true });
+		return () => window.removeEventListener('scroll', onScroll);
+	});
 
 	let prevCartQty = $cartQty;
 	$effect(() => {
@@ -123,7 +133,7 @@
 	{@render children()}
 </main>
 
-<button onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} class="fixed bottom-6 right-6 z-20 hidden h-10 w-10 items-center justify-center rounded-full border border-line bg-surface shadow-card transition hover:border-brand hover:text-brand md:flex" aria-label="Scroll to top">
+<button onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} class="fixed bottom-6 right-6 z-20 hidden h-10 w-10 items-center justify-center rounded-full border border-line bg-surface shadow-card transition-opacity duration-200 hover:border-brand hover:text-brand md:flex" class:opacity-0={!showTop} class:pointer-events-none={!showTop} class:opacity-100={showTop} aria-label="Scroll to top">
 	<svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6" stroke-linecap="round" stroke-linejoin="round" /></svg>
 </button>
 
