@@ -2,7 +2,9 @@
 	"name": "cahayabahari89-web",
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2025-09-01",
-	"compatibility_flags": ["nodejs_als"],
+	"compatibility_flags": [
+		"nodejs_als"
+	],
 	"assets": {
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
@@ -11,7 +13,7 @@
 		{
 			"binding": "DB",
 			"database_name": "cahayabahari89-db",
-			"database_id": "ca94baff-e473-475c-a22e-571e6f1a415c",
+			"database_id": "745b4d5a-23c2-4189-9942-fd6966a20b68",
 			"migrations_dir": "drizzle"
 		}
 	],
