@@ -4,6 +4,7 @@
 	import { adminSession } from '$lib/admin-session.svelte';
 	import Field from '$lib/components/Field.svelte';
 	import AdminImageGrid from '$lib/components/AdminImageGrid.svelte';
+	import { slugify } from '$lib/slug';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount, onDestroy } from 'svelte';
@@ -25,6 +26,7 @@
 	let fPrice = $state('');
 	let fCat = $state('');
 	let fStatus = $state('active');
+	let fId = $state(0);
 	let editImages = $state<ImgRow[]>([]);
 	let pending = $state<PendingFile[]>([]);
 	let orderDirty = $state(false);
@@ -48,9 +50,10 @@
 			}
 			if (!cRes.ok) throw new Error('load');
 			const p = ((await pRes.json()) as { data: {
-				sku: string | null; name: string; description: string | null; price: number;
+				id: number; sku: string | null; name: string; description: string | null; price: number;
 				categoryId: number | null; status: string; images: ImgRow[];
 			} }).data;
+			fId = p.id;
 			fSku = p.sku ?? '';
 			fName = p.name;
 			fDesc = p.description ?? '';
@@ -80,6 +83,8 @@
 		if (e.includes('unknown')) return t().admin.unknownRef;
 		return e || t().admin.loadFail;
 	}
+
+	const slugPreview = $derived(fName.trim() && fId ? `${slugify(fName)}-${fId}` : '');
 
 	async function save(e: SubmitEvent) {
 		e.preventDefault();
@@ -245,7 +250,7 @@
 				/>
 			</Field>
 			<Field label={t().admin.productName} required><input bind:value={fName} required minlength="2" class="w-full rounded-lg border px-4 py-2.5 font-normal" /></Field>
-			<Field label="Slug" hint={t().admin.slugAutoNote}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slug}</span></Field>
+			<Field label="Slug" hint={t().admin.slugAutoNote}><span class="block w-full rounded-lg border border-line bg-band px-4 py-2.5 font-mono text-sm font-normal text-muted">{slugPreview || '—'}</span></Field>
 			<Field label={t().admin.categoryCol}>
 				<select bind:value={fCat} class="w-full rounded-lg border px-4 py-2.5 font-normal">
 					<option value="">—</option>

@@ -17,16 +17,18 @@ export async function list(c: Context<Env>) {
 	const offset = (page - 1) * limit;
 
 	const where = [];
+	// Draft categories hide their products from the public list.
+	where.push(sql`${products.categoryId} IS NULL OR ${products.categoryId} NOT IN (SELECT ${categories.id} FROM ${categories} WHERE ${categories.status} = 'draft')`);
 	if (q) where.push(like(products.name, `%${q}%`));
 	if (cat) {
-		// resolve cat slug -> id
+		// resolve cat slug -> id (draft categories resolve to empty)
 		const catRow = await db
-			.select({ id: categories.id })
+			.select({ id: categories.id, status: categories.status })
 			.from(categories)
 			.where(eq(categories.slug, cat))
 			.get();
-		if (catRow?.id) where.push(eq(products.categoryId, catRow.id));
-		else return paginated(c, [], page, limit, 0);
+		if (!catRow?.id || catRow.status !== 'active') return paginated(c, [], page, limit, 0);
+		where.push(eq(products.categoryId, catRow.id));
 	}
 	if (minPrice !== undefined) where.push(sql`${products.price} >= ${minPrice}`);
 	if (maxPrice !== undefined) where.push(sql`${products.price} <= ${maxPrice}`);
@@ -101,6 +103,15 @@ export async function show(c: Context<Env>) {
 			if (current) return c.redirect(`/api/products/${current.slug}`, 301);
 		}
 		return fail(c, 404, 'not found');
+	}
+	// Draft categories hide their products (list + detail).
+	if (product.categoryId) {
+		const cat = await db
+			.select({ status: categories.status })
+			.from(categories)
+			.where(eq(categories.id, product.categoryId))
+			.get();
+		if (!cat || cat.status !== 'active') return fail(c, 404, 'not found');
 	}
 	const images = await db
 		.select()

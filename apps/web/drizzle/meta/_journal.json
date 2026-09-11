@@ -85,6 +85,20 @@
       "when": 1789101000000,
       "tag": "0012_footer_nav_remove",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1789101100000,
+      "tag": "0013_category_name_id_slugs",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1789168912569,
+      "tag": "0014_category_status",
+      "breakpoints": true
     }
   ]
 }

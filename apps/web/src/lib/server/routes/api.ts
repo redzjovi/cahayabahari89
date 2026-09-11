@@ -4,7 +4,7 @@ import { auth, need, type Env } from '../http/middleware';
 import { validationHook } from '../http/response';
 import { paginationQuerySchema } from '../requests/common';
 import { productsQuerySchema, storeProductSchema, updateProductSchema } from '../requests/product';
-import { categoriesSortSchema, storeCategorySchema, updateCategorySchema } from '../requests/category';
+import { categoriesSortSchema, storeCategorySchema, updateCategorySchema, categoriesFilterSchema } from '../requests/category';
 import { contactSchema, leadsFilterSchema, leadsSortSchema } from '../requests/lead';
 import { storeUserSchema, updateUserSchema, usersFilterSchema, usersSortSchema } from '../requests/user';
 import { storeMenuSchema, updateMenuSchema } from '../requests/menu';
@@ -50,7 +50,14 @@ api.post('/admin/products', auth, need('products.write'), zValidator('json', sto
 api.patch('/admin/products/:slug', auth, need('products.write'), zValidator('json', updateProductSchema, validationHook), AdminProduct.update);
 api.delete('/admin/products/:slug', auth, need('products.write'), AdminProduct.destroy);
 
-// ── Admin: categories (RBAC: categories.write; list reuses public GET /categories) ──
+// ── Admin: categories (RBAC: categories.write) ──
+api.get(
+	'/admin/categories',
+	auth,
+	need('categories.write'),
+	zValidator('query', paginationQuerySchema.extend({ sort: categoriesSortSchema }).extend(categoriesFilterSchema.shape), validationHook),
+	AdminCategory.index
+);
 api.post('/admin/categories', auth, need('categories.write'), zValidator('json', storeCategorySchema, validationHook), AdminCategory.store);
 api.patch('/admin/categories/:slug', auth, need('categories.write'), zValidator('json', updateCategorySchema, validationHook), AdminCategory.update);
 api.delete('/admin/categories/:slug', auth, need('categories.write'), AdminCategory.destroy);

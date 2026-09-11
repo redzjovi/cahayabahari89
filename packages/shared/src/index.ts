@@ -72,12 +72,13 @@ export const adminProductPatchSchema = z.object({
 });
 
 export const adminCategoryCreateSchema = z.object({
-	slug: slugRule,
-	name: z.string().min(2).max(100)
+	name: z.string().min(2).max(100),
+	status: z.enum(['active', 'draft']).default('active')
 });
 
 export const adminCategoryPatchSchema = z.object({
-	name: z.string().min(2).max(100)
+	name: z.string().min(2).max(100).optional(),
+	status: z.enum(['active', 'draft']).optional()
 });
 
 export const adminProductSchema = z.object({

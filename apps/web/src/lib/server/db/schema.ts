@@ -6,7 +6,8 @@ export const categories = sqliteTable(
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
 		slug: text('slug').notNull().unique(),
-		name: text('name').notNull(),
+		name: text('name').notNull(), // ID label (display); EN falls back to this
+		status: text('status').notNull().default('active'), // active | draft
 		// Self-referencing FK enforced at app level (avoids TS circular-inference error).
 		parentId: integer('parent_id'),
 		createdAt: text('created_at').default(sql`(datetime('now'))`)
