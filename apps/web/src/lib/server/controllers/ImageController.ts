@@ -7,7 +7,7 @@ import { fail } from '../http/response';
  * per upload, so immutable long caching is safe (replaced images get new URLs). */
 export async function serve(c: Context<Env>) {
 	const key = (c.req.param('key') as string);
-	if (!key.startsWith('products/') || key.includes('..')) return fail(c, 404, 'not found');
+	if ((!key.startsWith('products/') && !key.startsWith('cms/')) || key.includes('..')) return fail(c, 404, 'not found');
 	const obj = await c.env.IMAGES.get(key);
 	if (!obj) return fail(c, 404, 'not found');
 	const headers = new Headers();

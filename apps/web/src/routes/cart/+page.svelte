@@ -38,10 +38,13 @@
 	const selectedQty = $derived(selectedItems.reduce((s, i) => s + i.qty, 0));
 	const hasSelection = $derived(selected.size > 0);
 
+	// CMS-managed number (contact.whatsapp) via layout data, const fallback in lib.
+	// svelte-ignore state_referenced_locally
+	const waNumber = (data as { waNumber?: string }).waNumber || '6287877118199';
 	const waLink = $derived(
 		hasSelection
-			? buildCartWhatsAppLink(selectedItems, locale.current as 'en' | 'id')
-			: buildCartWhatsAppLink($cart, locale.current as 'en' | 'id')
+			? buildCartWhatsAppLink(selectedItems, locale.current as 'en' | 'id', waNumber)
+			: buildCartWhatsAppLink($cart, locale.current as 'en' | 'id', waNumber)
 	);
 </script>
 

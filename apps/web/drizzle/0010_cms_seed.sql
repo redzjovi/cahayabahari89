@@ -1,0 +1,65 @@
+-- CMS seed: content.manage permission + default menus + ID page content.
+-- ID is source of truth; EN rows are intentionally absent (public falls back to ID).
+INSERT INTO `permissions` (`id`, `slug`, `name`) VALUES (9, 'content.manage', 'Manage menus and page content');--> statement-breakpoint
+INSERT INTO `role_permissions` (`role_id`, `permission_id`) VALUES (1, 9), (2, 9);--> statement-breakpoint
+INSERT INTO `menus` (`location`, `label_en`, `label_id`, `href`, `sort`, `visible`) VALUES
+	('header', 'Products', 'Produk', '/products', 1, 1),
+	('header', 'About', 'Tentang', '/about', 2, 1),
+	('header', 'Contact', 'Kontak', '/contact', 3, 1),
+	('footer', 'Products', 'Produk', '/products', 1, 1),
+	('footer', 'About', 'Tentang', '/about', 2, 1),
+	('footer', 'Contact', 'Kontak', '/contact', 3, 1),
+	('social', 'Facebook', 'Facebook', 'https://www.facebook.com/cahayabahari89', 1, 1),
+	('social', 'Instagram', 'Instagram', 'https://www.instagram.com/cahayabahari89', 2, 1),
+	('social', 'YouTube', 'YouTube', 'https://www.youtube.com/@cahayabahari89', 3, 1),
+	('social', 'TikTok', 'TikTok', 'https://www.tiktok.com/@cahayabahari89', 4, 1);--> statement-breakpoint
+INSERT INTO `page_sections` (`page`, `locale`, `key`, `heading`, `body`, `sort`) VALUES
+	('home', 'id', 'hero.badge', NULL, 'Salmon premium, segar setiap hari', 1),
+	('home', 'id', 'hero.titleA', NULL, 'Salmon segar dari laut,', 2),
+	('home', 'id', 'hero.titleB', NULL, 'langsung ke meja Anda.', 3),
+	('home', 'id', 'hero.sub', NULL, 'Cahaya Bahari 89 memasok salmon premium dan ikan segar dengan rantai dingin tanpa putus — untuk resto, hotel, retail, dan keluarga Anda.', 4),
+	('home', 'id', 'hero.ctaProducts', NULL, 'Lihat Produk', 5),
+	('home', 'id', 'hero.ctaContact', NULL, 'Hubungi Sales', 6),
+	('home', 'id', 'featured.eyebrow', NULL, 'Unggulan', 7),
+	('home', 'id', 'featured.title', NULL, 'Salmon terlaris', 8),
+	('home', 'id', 'featured.sub', NULL, 'Potongan paling dipesan minggu ini.', 9),
+	('home', 'id', 'cta.title', NULL, 'Butuh salmon untuk bisnis Anda?', 10),
+	('home', 'id', 'cta.sub', NULL, 'Dapatkan harga grosir dan jadwal pengiriman hari ini.', 11),
+	('home', 'id', 'cta.button', NULL, 'Minta Penawaran', 12),
+	('site', 'id', 'footer.tagline', NULL, 'Salmon premium dan ikan segar, dikirim dengan rantai dingin terjaga.', 1),
+	('about', 'id', 'about.eyebrow', NULL, 'Cerita kami', 1),
+	('about', 'id', 'about.title', NULL, 'Perusahaan seafood yang dibangun dari air dingin dan kepercayaan', 2),
+	('about', 'id', 'about.p1', NULL, 'Cahaya Bahari 89 berawal dari satu keyakinan: salmon yang hebat harus terasa seperti laut asalnya. Kami bekerja langsung dengan nelayan dan farm bersertifikat, me-grading setiap batch saat fajar, dan memindahkannya dalam pendinginan konstan.', 3),
+	('about', 'id', 'about.p2', NULL, 'Kini kami memasok resto, hotel, dan retail — serta mengemas porsi keluarga untuk juru masak rumahan yang menolak kompromi.', 4),
+	('about', 'id', 'about.journeyTitle', NULL, 'Perjalanan kami', 5),
+	('about', 'id', 'milestone.0', '2019', 'Berdiri sebagai satu lapak pasar dengan satu chiller.', 6),
+	('about', 'id', 'milestone.1', '2021', 'Kontrak B2B pertama dengan resto dan hotel.', 7),
+	('about', 'id', 'milestone.2', '2023', 'Armada rantai dingin sendiri dan katalog online.', 8),
+	('about', 'id', 'milestone.3', '2025', 'Lini grading kelas ekspor dan 50+ mitra.', 9),
+	('about', 'id', 'about.valuesTitle', NULL, 'Nilai-nilai kami', 10),
+	('about', 'id', 'value.0.title', NULL, 'Kesegaran utama', 11),
+	('about', 'id', 'value.0.text', NULL, 'Yang tak layak untuk keluarga kami, tak kami jual.', 12),
+	('about', 'id', 'value.1.title', NULL, 'Grading jujur', 13),
+	('about', 'id', 'value.1.text', NULL, 'Isi kemasan sama dengan labelnya.', 14),
+	('about', 'id', 'value.2.title', NULL, 'Hormat pada laut', 15),
+	('about', 'id', 'value.2.text', NULL, 'Sumber bersertifikat dan pengolahan tanpa sisa.', 16),
+	('contact', 'id', 'contact.eyebrow', NULL, 'Kontak', 1),
+	('contact', 'id', 'contact.title', NULL, 'Hubungi meja penjualan', 2),
+	('contact', 'id', 'contact.sub', NULL, 'Retail, grosir, atau ekspor — kami balas maksimal satu hari kerja.', 3),
+	('contact', 'id', 'contact.name', NULL, 'Nama lengkap', 4),
+	('contact', 'id', 'contact.company', NULL, 'Perusahaan (opsional)', 5),
+	('contact', 'id', 'contact.email', NULL, 'Email', 6),
+	('contact', 'id', 'contact.volume', NULL, 'Volume bulanan', 7),
+	('contact', 'id', 'contact.volumes', NULL, 'Baru lihat-lihat
+< 50 kg
+50–200 kg
+200 kg – 1 ton
+> 1 ton (ekspor)', 8),
+	('contact', 'id', 'contact.message', NULL, 'Pesan (min. 10 karakter)', 9),
+	('contact', 'id', 'contact.send', NULL, 'Kirim inquiry', 10),
+	('contact', 'id', 'contact.ok', NULL, 'Terima kasih! Inquiry Anda diterima — kami balas maksimal satu hari kerja.', 11),
+	('contact', 'id', 'contact.direct', NULL, 'Lebih suka WhatsApp? Chat langsung dengan sales.', 12),
+	('contact', 'id', 'contact.whatsapp', NULL, '6287877118199', 13),
+	('contact', 'id', 'contact.whatsappDisplay', NULL, '+62 878-7711-8199', 14),
+	('contact', 'id', 'contact.hours', NULL, 'Mon–Sat, 07:00–17:00 WIB', 15),
+	('contact', 'id', 'contact.email_address', NULL, 'sales@cahayabahari89.id', 16);

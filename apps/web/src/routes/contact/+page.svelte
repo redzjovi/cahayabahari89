@@ -5,7 +5,7 @@
 	import { buildInquiryWhatsAppLink } from '$lib/cart.svelte';
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	let { form } = $props();
+	let { form, data } = $props();
 	let submitting = $state(false);
 	let waUrl = $state('');
 
@@ -14,9 +14,21 @@
 	let fEmail = $state('');
 	let fMessage = $state('');
 
-	const WA_NUMBER = '6287877118199';
+	// CMS channels (ID source of truth; EN falls back to ID server-side).
+	// Form labels/titles stay hardcoded in the dict. Data is static per SSR load.
+	type Sec = { body?: string | null };
+	// svelte-ignore state_referenced_locally
+	const S = ((data?.sections ?? {}) as Record<string, Sec>);
+	function cx(key: string, fallback: string): string {
+		const body = S[key]?.body?.trim();
+		return body ? body! : fallback;
+	}
+
+	const WA_NUMBER = cx('contact.whatsapp', '6287877118199');
+	const WA_DISPLAY = cx('contact.whatsappDisplay', '+62 878-7711-8199');
+	const WA_HOURS = cx('contact.hours', 'Mon–Sat, 07:00–17:00 WIB');
 	const waLink = `https://wa.me/${WA_NUMBER}?text=Hello%20Cahaya%20Bahari%2089`;
-	const EMAIL = 'sales@cahayabahari89.id';
+	const EMAIL = cx('contact.email_address', 'sales@cahayabahari89.id');
 
 	const handleSubmit: SubmitFunction = ({ formData }) => {
 		submitting = true;
@@ -36,7 +48,7 @@
 			// Lead saved → open WhatsApp with the inquiry prefilled.
 			// (Popup blockers may stop this; the success box links it manually.)
 			if (result.type === 'success') {
-				waUrl = buildInquiryWhatsAppLink(snapshot, locale.current);
+				waUrl = buildInquiryWhatsAppLink(snapshot, locale.current, WA_NUMBER);
 				window.open(waUrl, '_blank', 'noopener');
 			}
 		};
@@ -46,7 +58,7 @@
 <svelte:head><title>{locale.current === 'id' ? 'Kontak' : 'Contact'} — Cahaya Bahari 89</title></svelte:head>
 
 <section data-section="contact-channels" class="content-wrap pb-8 pt-8">
-	<SectionHead eyebrow={t().contact.eyebrow} title="" />
+	<SectionHead eyebrow={t().contact.eyebrow} title={t().contact.title} sub={t().contact.sub} />
 	<div class="mt-8 grid gap-5 sm:grid-cols-2">
 		<a
 			href={waLink}
@@ -60,8 +72,8 @@
 			</span>
 			<span>
 				<span class="block text-xs font-bold uppercase tracking-[0.14em] text-muted">WhatsApp</span>
-				<span class="mt-1 block font-display text-base font-bold hover:text-brand md:text-xl">+62 878-7711-8199</span>
-				<span class="mt-1 block text-sm text-muted">Mon–Sat, 07:00–17:00 WIB</span>
+				<span class="mt-1 block font-display text-base font-bold hover:text-brand md:text-xl">{WA_DISPLAY}</span>
+				<span class="mt-1 block text-sm text-muted">{WA_HOURS}</span>
 			</span>
 		</a>
 		<a

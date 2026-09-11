@@ -34,7 +34,10 @@
 		document.getElementById(`thumb-${n}`)?.focus();
 	}
 
-	const waLink = $derived(buildSingleWhatsAppLink(p.name, p.sku ?? p.slug));
+	// CMS-managed number (contact.whatsapp) via layout data, const fallback in lib.
+	// svelte-ignore state_referenced_locally
+	const waNumber = (data as { waNumber?: string }).waNumber || '6287877118199';
+	const waLink = $derived(buildSingleWhatsAppLink(p.name, p.sku ?? p.slug, waNumber));
 
 	function idr(n: number) {
 		return n.toLocaleString(locale.current === 'id' ? 'id-ID' : 'en-US');

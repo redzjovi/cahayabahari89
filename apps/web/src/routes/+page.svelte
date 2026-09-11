@@ -8,6 +8,19 @@
 	import PhotoPlaceholder from '$lib/components/PhotoPlaceholder.svelte';
 
 	let { data } = $props();
+
+	// CMS content with hardcoded fallback (ID is source of truth; EN falls back to ID server-side).
+	// Data is static per SSR load (remounts on nav), so capturing initial value is intended.
+	// svelte-ignore state_referenced_locally
+	function cx(key: string, fallback: string): string {
+		const body = (data.sections as Record<string, { body?: string | null }>)[key]?.body?.trim();
+		return body ? body! : fallback;
+	}
+	// svelte-ignore state_referenced_locally
+	const heroImg = (data.sections as Record<string, { imageUrl?: string | null }>)['hero.image_url']?.imageUrl?.trim() || '';
+	// svelte-ignore state_referenced_locally
+	const heroTitleFallback = `${t().hero.titleA} ${t().hero.titleB}`;
+	const heroCta = locale.current === 'id' ? 'Hubungi kami' : 'Contact us';
 </script>
 
 <svelte:head>
@@ -17,18 +30,21 @@
 
 <section data-section="hero" class="content-wrap grid items-center gap-6 pb-10 pt-8 lg:grid-cols-2 lg:gap-8 lg:pb-16">
 	<div>
-		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{t().hero.badge}</span>
+		<span class="inline-block rounded-full bg-accent px-4 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">{cx('hero.badge', t().hero.badge)}</span>
 		<h1 class="mt-4 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-			{t().hero.titleA}<br />
-			<span class="hero-gradient">{t().hero.titleB}</span>
+			<span class="hero-gradient">{cx('hero.title', heroTitleFallback)}</span>
 		</h1>
-		<p class="mt-4 max-w-xl text-lg leading-relaxed text-muted">{t().hero.sub}</p>
+		<p class="mt-4 max-w-xl text-lg leading-relaxed text-muted">{cx('hero.sub', t().hero.sub)}</p>
 		<div class="mt-6 flex flex-wrap gap-3">
 			<a href={localize('/products', locale.current)} class="rounded-full bg-brand px-4 py-2 font-bold text-brand-ink transition hover:brightness-110">{t().hero.ctaProducts}</a>
-			<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-4 py-2 font-bold transition hover:border-brand hover:text-brand">{t().hero.ctaContact}</a>
+			<a href={localize('/contact', locale.current)} class="rounded-full border border-line bg-surface px-4 py-2 font-bold transition hover:border-brand hover:text-brand">{heroCta}</a>
 		</div>
 	</div>
-	<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[4/3]" />
+	{#if heroImg}
+		<img src={heroImg} alt="Salmon hero" class="aspect-[4/3] w-full rounded-card border border-line object-cover" loading="eager" />
+	{:else}
+		<PhotoPlaceholder label="Salmon hero photo" aspect="aspect-[4/3]" />
+	{/if}
 </section>
 
 <div data-section="wave-divider"><WaveDivider /></div>
@@ -53,8 +69,8 @@
 
 <section data-section="cta" class="content-wrap pb-4">
 	<div use:reveal class="rounded-card bg-brand px-6 py-8 text-center text-brand-ink shadow-card sm:px-10">
-		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{t().cta.title}</h2>
-		<p class="mx-auto mt-3 max-w-xl opacity-80">{t().cta.sub}</p>
-		<a href={localize('/contact', locale.current)} class="mt-5 inline-block rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110">{t().cta.button}</a>
+		<h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">{cx('cta.title', t().cta.title)}</h2>
+		<p class="mx-auto mt-3 max-w-xl opacity-80">{cx('cta.sub', t().cta.sub)}</p>
+		<a href={localize('/contact', locale.current)} class="mt-5 inline-block rounded-full bg-accent px-4 py-2 font-bold text-accent-ink transition hover:brightness-110">{cx('cta.button', t().cta.button)}</a>
 	</div>
 </section>

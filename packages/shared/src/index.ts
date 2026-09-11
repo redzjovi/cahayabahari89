@@ -89,3 +89,39 @@ export const adminProductSchema = z.object({
 	categoryId: z.number().int().optional(),
 	status: z.enum(['active', 'draft']).default('active')
 });
+
+export const menuLocationSchema = z.enum(['header', 'social']);
+
+export const storeMenuSchema = z.object({
+	location: menuLocationSchema,
+	labelEn: z.string().max(100).default(''),
+	labelId: z.string().max(100).default(''),
+	href: z.string().min(1).max(500),
+	sort: z.number().int().min(0).max(9999).default(0),
+	visible: z.boolean().default(true)
+});
+
+export const updateMenuSchema = z.object({
+	location: menuLocationSchema.optional(),
+	labelEn: z.string().max(100).optional(),
+	labelId: z.string().max(100).optional(),
+	href: z.string().min(1).max(500).optional(),
+	sort: z.number().int().min(0).max(9999).optional(),
+	visible: z.boolean().optional()
+});
+
+export const upsertPageSchema = z.object({
+	locale: z.enum(['id', 'en']),
+	sections: z
+		.array(
+			z.object({
+				key: z.string().min(1).max(120),
+				heading: z.string().max(200).nullable().optional(),
+				body: z.string().max(5000).nullable().optional(),
+				imageUrl: z.string().max(1000).nullable().optional(),
+				sort: z.number().int().min(0).max(9999).optional()
+			})
+		)
+		.min(1)
+		.max(100)
+});

@@ -71,6 +71,46 @@ export const leads = sqliteTable('leads', {
 	createdAt: text('created_at').default(sql`(datetime('now'))`)
 });
 
+// ── CMS: menus + page content (ID is source of truth, EN falls back to ID) ──
+
+export const menus = sqliteTable(
+	'menus',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		location: text('location').notNull().default('header'), // header | social
+		labelEn: text('label_en').notNull().default(''),
+		labelId: text('label_id').notNull().default(''),
+		href: text('href').notNull().default('/'),
+		sort: integer('sort').notNull().default(0),
+		visible: integer('visible').notNull().default(1), // 1 | 0
+		createdAt: text('created_at').default(sql`(datetime('now'))`),
+		updatedAt: text('updated_at').default(sql`(datetime('now'))`)
+	},
+	(table) => [
+		index('menus_location_idx').on(table.location),
+		index('menus_sort_idx').on(table.sort)
+	]
+);
+
+export const pageSections = sqliteTable(
+	'page_sections',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		page: text('page').notNull(), // home | about | contact | site
+		locale: text('locale').notNull().default('id'), // id | en
+		key: text('key').notNull(),
+		heading: text('heading'),
+		body: text('body'),
+		imageUrl: text('image_url'),
+		sort: integer('sort').notNull().default(0),
+		updatedAt: text('updated_at').default(sql`(datetime('now'))`)
+	},
+	(table) => [
+		index('page_sections_page_locale_idx').on(table.page, table.locale),
+		index('page_sections_key_idx').on(table.key)
+	]
+);
+
 // ── RBAC ──
 
 export const users = sqliteTable(

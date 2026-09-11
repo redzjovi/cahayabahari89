@@ -10,6 +10,7 @@ export interface CartItem {
 }
 
 const STORAGE_KEY = 'cb89-cart';
+/** Fallback WhatsApp number (ID source of truth lives in CMS: contact.whatsapp). */
 const WA_NUMBER = '6287877118199';
 
 function loadCart(): CartItem[] {
@@ -94,7 +95,7 @@ function idr(n: number) {
 	return n.toLocaleString('id-ID');
 }
 
-export function buildCartWhatsAppLink(items: CartItem[], locale: 'en' | 'id'): string {
+export function buildCartWhatsAppLink(items: CartItem[], locale: 'en' | 'id', waNumber: string = WA_NUMBER): string {
 	const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 	let message: string;
 
@@ -108,12 +109,12 @@ export function buildCartWhatsAppLink(items: CartItem[], locale: 'en' | 'id'): s
 		message += `\n\nTotal: Rp ${idr(total)}\n\nPlease confirm availability and delivery.`;
 	}
 
-	return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+	return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 }
 
-export function buildSingleWhatsAppLink(productName: string, productSlug: string): string {
+export function buildSingleWhatsAppLink(productName: string, productSlug: string, waNumber: string = WA_NUMBER): string {
 	const message = `Hello, I'm interested in ${productName} (${productSlug})`;
-	return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+	return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 }
 
 export type InquiryFields = {
@@ -124,7 +125,7 @@ export type InquiryFields = {
 	message: string;
 };
 
-export function buildInquiryWhatsAppLink(f: InquiryFields, locale: 'en' | 'id'): string {
+export function buildInquiryWhatsAppLink(f: InquiryFields, locale: 'en' | 'id', waNumber: string = WA_NUMBER): string {
 	const lines = [
 		f.company ? `${f.name} (${f.company})` : f.name,
 		`Email: ${f.email}`,
@@ -135,7 +136,7 @@ export function buildInquiryWhatsAppLink(f: InquiryFields, locale: 'en' | 'id'):
 			? `Halo Cahaya Bahari 89, saya ingin bertanya:\n\n`
 			: `Hello Cahaya Bahari 89, I have an inquiry:\n\n`;
 	const message = head + lines.join('\n') + `\n\n${f.message}`;
-	return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+	return `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 }
 
 export { WA_NUMBER };
