@@ -72,6 +72,8 @@ api.delete('/admin/images/:id', auth, need('images.write'), AdminImage.destroy);
 
 // ── Admin: menus + page content (RBAC: content.manage) ──
 api.get('/admin/menus', auth, need('content.manage'), zValidator('query', paginationQuerySchema, validationHook), AdminMenu.adminIndex);
+api.get('/admin/menus/:id', auth, need('content.manage'), AdminMenu.show);
+api.patch('/admin/menus/reorder', auth, need('content.manage'), AdminMenu.reorder);
 api.post('/admin/menus', auth, need('content.manage'), zValidator('json', storeMenuSchema, validationHook), AdminMenu.store);
 api.patch('/admin/menus/:id', auth, need('content.manage'), zValidator('json', updateMenuSchema, validationHook), AdminMenu.update);
 api.delete('/admin/menus/:id', auth, need('content.manage'), AdminMenu.destroy);

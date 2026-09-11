@@ -17,6 +17,9 @@
 	let notice = $state('');
 	let confirming: number | null = $state(null);
 	let fLoc = $state('all');
+	let reordering = $state(false);
+	let dragIndex: number | null = $state(null);
+	let dropIndex: number | null = $state(null);
 
 	let currentPage = $state(1);
 	let pageSize = $state<10 | 25 | 50 | 100>(10);
@@ -100,6 +103,112 @@
 		}
 	}
 
+	// Drag reorder is only meaningful inside one location filter (All interleaves).
+	const canDrag = $derived(fLoc !== 'all' && !reordering);
+
+	/** Full id ordering of a location (source of truth, not just the visible page). */
+	async function fetchLocationIds(location: string): Promise<number[]> {
+		const res = await adminSession.api('/api/admin/menus?page=1&limit=100');
+		if (!res.ok) throw new Error('load');
+		const data = (await res.json()) as { data: MenuRow[] };
+		return data.data
+			.filter((m) => m.location === location)
+			.sort((a, b) => a.sort - b.sort || a.id - b.id)
+			.map((m) => m.id);
+	}
+
+	async function persistOrder(location: string, orderedIds: number[]) {
+		reordering = true;
+		error = '';
+		notice = '';
+		try {
+			const res = await adminSession.api('/api/admin/menus/reorder', {
+				method: 'PATCH',
+				body: JSON.stringify({ location, orderedIds })
+			});
+			if (!res.ok) throw new Error('save');
+			notice = t().admin.saved;
+		} catch {
+			error = t().admin.loadFail;
+		} finally {
+			reordering = false;
+			await load();
+		}
+	}
+
+	/** Arrow reorder: swap with the nearest same-location neighbor in view direction. */
+	async function moveRow(index: number, dir: -1 | 1) {
+		if (reordering) return;
+		const row = items[index];
+		let j = index + dir;
+		while (j >= 0 && j < items.length && items[j].location !== row.location) j += dir;
+		if (j < 0 || j >= items.length) return;
+		try {
+			const ids = await fetchLocationIds(row.location);
+			const a = ids.indexOf(row.id);
+			const b = ids.indexOf(items[j].id);
+			if (a === -1 || b === -1) throw new Error('load');
+			[ids[a], ids[b]] = [ids[b], ids[a]];
+			await persistOrder(row.location, ids);
+		} catch {
+			error = t().admin.loadFail;
+			await load();
+		}
+	}
+
+	function dragStart(index: number, e: DragEvent) {
+		if (reordering || fLoc === 'all') {
+			e.preventDefault();
+			return;
+		}
+		dragIndex = index;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			try {
+				e.dataTransfer.setData('text/plain', `menu:${index}`);
+			} catch {
+				// some browsers restrict setData — local state is the source of truth
+			}
+		}
+	}
+
+	function dragOver(index: number, e: DragEvent) {
+		if (dragIndex === null || reordering) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		dropIndex = index;
+	}
+
+	function resetDrag() {
+		dragIndex = null;
+		dropIndex = null;
+	}
+
+	async function dropRow(index: number, e: DragEvent) {
+		e.preventDefault();
+		if (dragIndex === null || dragIndex === index || reordering) {
+			resetDrag();
+			return;
+		}
+		const from = dragIndex;
+		resetDrag();
+		const dragged = items[from];
+		const target = items[index];
+		if (!dragged || !target || dragged.location !== target.location) return;
+		try {
+			const ids = await fetchLocationIds(dragged.location);
+			const without = ids.filter((id) => id !== dragged.id);
+			let at = without.indexOf(target.id);
+			if (at === -1) throw new Error('load');
+			if (from < index) at += 1;
+			without.splice(at, 0, dragged.id);
+			await persistOrder(dragged.location, without);
+		} catch {
+			error = t().admin.loadFail;
+			await load();
+		}
+	}
+
 	async function setPage(p: number) {
 		const next = Math.max(1, Math.min(pageCount, p));
 		if (next === currentPage) return;
@@ -142,6 +251,7 @@
 				>{label}</button>
 			{/each}
 		</div>
+		<p class="mt-2 text-xs text-muted">{fLoc === 'all' ? t().admin.menusReorderAll : t().admin.menusReorderHint}</p>
 
 		{#if loading}
 			<p class="mt-6 text-muted">…</p>
@@ -161,9 +271,28 @@
 						</tr>
 					</thead>
 					<tbody class="divide-y divide-line">
-						{#each items as m}
-							<tr>
-								<td class="px-4 py-2.5 font-mono">{m.sort}</td>
+						{#each items as m, i (m.id)}
+							<!-- svelte-ignore a11y_no_static_element_interactions: row drag is pointer-supplementary; keyboard reorder uses the ↑/↓ buttons inside -->
+							<tr
+								draggable={canDrag}
+								ondragstart={(e) => dragStart(i, e)}
+								ondragover={(e) => dragOver(i, e)}
+								ondrop={(e) => dropRow(i, e)}
+								ondragend={resetDrag}
+								class="{dropIndex === i && dragIndex !== null ? 'bg-band ring-2 ring-inset ring-brand' : ''} {dragIndex === i ? 'opacity-50' : ''}"
+							>
+								<td class="px-4 py-2.5">
+									<span class="flex items-center gap-1">
+										{#if canDrag}
+											<span class="cursor-grab touch-none text-muted active:cursor-grabbing" title={t().admin.dragHandle} aria-hidden="true">⠿</span>
+										{/if}
+										<span class="flex flex-col">
+											<button type="button" onclick={() => moveRow(i, -1)} disabled={reordering} aria-label={t().admin.moveUp} class="px-1 text-[10px] leading-tight transition hover:text-brand disabled:opacity-30">▲</button>
+											<button type="button" onclick={() => moveRow(i, 1)} disabled={reordering} aria-label={t().admin.moveDown} class="px-1 text-[10px] leading-tight transition hover:text-brand disabled:opacity-30">▼</button>
+										</span>
+										<span class="font-mono">{m.sort}</span>
+									</span>
+								</td>
 								<td class="px-4 py-2.5"><span class="rounded-full bg-band px-2.5 py-0.5 text-xs font-bold">{locLabel(m.location)}</span></td>
 								<td class="px-4 py-2.5">
 									<span class="block font-semibold">{m.labelId || '—'}</span>

@@ -19,21 +19,17 @@
 	let fVisible = $state(true);
 
 	const canView = $derived(adminSession.can('content.manage'));
-	const menuId = $derived(page.url.pathname.split('/').filter(Boolean).pop() ?? '');
+	// Route params (not URL segments): admin URLs are localized (/id/admin/menus/5/edit).
+	const menuId = $derived(page.params.id as string);
 
 	onMount(async () => {
 		adminSession.init();
 		if (!(await adminSession.refresh())) return;
 		if (!canView) return;
 		try {
-			const res = await adminSession.api('/api/admin/menus?page=1&limit=100');
+			const res = await adminSession.api(`/api/admin/menus/${menuId}`);
 			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { data: { id: number; location: string; labelEn: string; labelId: string; href: string; sort: number; visible: number }[] };
-			const row = data.data.find((m) => String(m.id) === menuId);
-			if (!row) {
-				error = t().admin.loadFail;
-				return;
-			}
+			const row = ((await res.json()) as { data: { id: number; location: string; labelEn: string; labelId: string; href: string; sort: number; visible: number } }).data;
 			fLoc = row.location;
 			fLabelId = row.labelId;
 			fLabelEn = row.labelEn;

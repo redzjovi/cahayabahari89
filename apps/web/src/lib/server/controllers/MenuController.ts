@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import { asc, eq, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import { createDb } from '../db';
 import { menus } from '../db/schema';
 import type { Env } from '../http/middleware';
@@ -40,6 +41,35 @@ export async function adminIndex(c: Context<Env>) {
 		.offset((q.page - 1) * q.limit)
 		.all();
 	return paginated(c, rows, q.page, q.limit, total);
+}
+
+/** Admin: persist the exact order shown in the admin list — orderedIds[0] is first.
+ * Scoped to one location; must list every menu of that location exactly once. */
+export async function reorder(c: Context<Env>) {
+	const body = await c.req.json().catch(() => null);
+	const parsed = z.object({ location: z.enum(['header', 'social']), orderedIds: z.array(z.number().int().positive()).min(1).max(100) }).safeParse(body);
+	if (!parsed.success) return fail(c, 400, 'location and orderedIds[] are required');
+	const { location, orderedIds } = parsed.data;
+	if (new Set(orderedIds).size !== orderedIds.length) return fail(c, 400, 'duplicate menu ids');
+	const db = createDb(c.env.DB);
+	const rows = await db.select({ id: menus.id }).from(menus).where(eq(menus.location, location)).all();
+	if (rows.length !== orderedIds.length) return fail(c, 400, 'orderedIds must list every menu of this location exactly once');
+	const known = new Set(rows.map((r) => r.id));
+	if (!orderedIds.every((id) => known.has(id))) return fail(c, 400, 'unknown menu id for this location');
+	for (let i = 0; i < orderedIds.length; i++) {
+		await db.update(menus).set({ sort: i, updatedAt: sql`(datetime('now'))` }).where(eq(menus.id, orderedIds[i]));
+	}
+	return withMessage(c, 'Order saved');
+}
+
+/** Admin single menu row (RBAC: content.manage). */
+export async function show(c: Context<Env>) {
+	const id = Number(c.req.param('id'));
+	if (!Number.isInteger(id)) return fail(c, 404, 'not found');
+	const db = createDb(c.env.DB);
+	const row = await db.select().from(menus).where(eq(menus.id, id)).get();
+	if (!row) return fail(c, 404, 'not found');
+	return ok(c, row);
 }
 
 export async function store(c: Context<Env>) {
