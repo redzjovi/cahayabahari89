@@ -7,28 +7,55 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
+	import { browser } from '$app/environment';
 
 	let { children, data } = $props();
 	let checked = $state(false);
 	let authed = $state(false);
 	let menuOpen = $state(false);
+	// Collapsed sidebar groups, keyed by the group's first item href (locale-stable).
+	// Persisted per browser; the active page's group always auto-opens.
+	const GROUPS_KEY = 'cb89-admin-groups';
+	let collapsed = $state<Record<string, boolean>>({});
 
 	const isLogin = $derived(page.url.pathname.endsWith('/login'));
 
-	const items = $derived.by(() => {
+	const groups = $derived.by(() => {
 		const all = [
-			{ href: '/admin/products', label: () => t().admin.productsTitle, show: adminSession.can('products.write') },
-			{ href: '/admin/featured', label: () => t().admin.featuredTitle, show: adminSession.can('products.write') },
-			{ href: '/admin/categories', label: () => t().admin.categoriesTitle, show: adminSession.can('categories.write') },
-			{ href: '/admin/menus', label: () => t().admin.menusTitle, show: adminSession.can('content.manage') },
-			{ href: '/admin/content', label: () => t().admin.contentTitle, show: adminSession.can('content.manage') },
-			{ href: '/admin/leads', label: () => t().admin.leads, show: adminSession.can('leads.read') },
-			{ href: '/admin/users', label: () => t().admin.users, show: adminSession.can('users.manage') },
-			{ href: '/admin/roles', label: () => t().admin.roles, show: adminSession.can('roles.manage') },
-			{ href: '/admin/permissions', label: () => t().admin.permissionsTitle, show: adminSession.can('roles.manage') }
+			{
+				title: () => t().admin.groupStore,
+				items: [
+					{ href: '/admin/products', label: () => t().admin.productsTitle, show: adminSession.can('products.write') },
+					{ href: '/admin/featured', label: () => t().admin.featuredTitle, show: adminSession.can('products.write') },
+					{ href: '/admin/categories', label: () => t().admin.categoriesTitle, show: adminSession.can('categories.write') }
+				]
+			},
+			{
+				title: () => t().admin.groupContent,
+				items: [
+					{ href: '/admin/menus', label: () => t().admin.menusTitle, show: adminSession.can('content.manage') },
+					{ href: '/admin/content', label: () => t().admin.contentTitle, show: adminSession.can('content.manage') }
+				]
+			},
+			{
+				title: () => t().admin.groupLeads,
+				items: [{ href: '/admin/leads', label: () => t().admin.leads, show: adminSession.can('leads.read') }]
+			},
+			{
+				title: () => t().admin.groupSystem,
+				items: [
+					{ href: '/admin/users', label: () => t().admin.users, show: adminSession.can('users.manage') },
+					{ href: '/admin/roles', label: () => t().admin.roles, show: adminSession.can('roles.manage') },
+					{ href: '/admin/permissions', label: () => t().admin.permissionsTitle, show: adminSession.can('roles.manage') }
+				]
+			}
 		];
-		return all.filter((i) => i.show);
+		return all
+			.map((g) => ({ title: g.title, items: g.items.filter((i) => i.show) }))
+			.filter((g) => g.items.length > 0);
 	});
+	const flatItems = $derived(groups.flatMap((g) => g.items));
 
 	const storefrontHref = $derived(localize('/', data.locale));
 
@@ -36,7 +63,7 @@
 		const p = page.url.pathname;
 		const seg = p.split('/').filter(Boolean).pop();
 		const path = p.replace(/\/+$/, '');
-		for (const it of items) {
+		for (const it of flatItems) {
 			if (path === localize(it.href, data.locale) || path.startsWith(localize(it.href + '/', data.locale))) return it.href;
 		}
 		return '';
@@ -44,10 +71,51 @@
 
 	onMount(async () => {
 		adminSession.init();
+		if (browser) {
+			try {
+				const raw = localStorage.getItem(GROUPS_KEY);
+				if (raw) collapsed = (JSON.parse(raw) as Record<string, boolean>) ?? {};
+			} catch {
+				// ignore (private mode / corrupt value)
+			}
+		}
 		authed = await adminSession.refresh();
 		if (!authed && !isLogin) await goto(localize('/admin/login', data.locale));
 		if (authed && isLogin) await goto(localize('/admin/users', data.locale));
 		checked = true;
+	});
+
+	function groupKey(items: { href: string }[]): string {
+		return items[0]?.href ?? '';
+	}
+
+	function isCollapsed(key: string): boolean {
+		return collapsed[key] === true;
+	}
+
+	function toggleGroup(key: string) {
+		collapsed = { ...collapsed, [key]: !isCollapsed(key) };
+		if (browser) {
+			try {
+				localStorage.setItem(GROUPS_KEY, JSON.stringify(collapsed));
+			} catch {
+				// ignore (private mode)
+			}
+		}
+	}
+
+	// The active page's group always opens (runs on route change, never fights
+	// same-page toggle clicks since those don't change activeInternal).
+	$effect(() => {
+		const active = activeInternal;
+		if (!active) return;
+		const g = groups.find((gr) => gr.items.some((i) => i.href === active));
+		const key = g ? groupKey(g.items) : '';
+		if (key && collapsed[key]) {
+			const next = { ...collapsed };
+			delete next[key];
+			collapsed = next;
+		}
 	});
 
 	async function logout() {
@@ -97,14 +165,32 @@
 				</button>
 			</div>
 
-			<nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 text-sm font-bold">
-				{#each items as it}
-					<a
-						href={localize(it.href, data.locale)}
-						onclick={close}
-						aria-current={activeInternal === it.href ? 'page' : undefined}
-						class="block rounded-lg px-3 py-2 transition {activeInternal === it.href ? 'bg-brand text-brand-ink' : 'hover:bg-band'}"
-					>{it.label()}</a>
+			<nav class="flex-1 space-y-3 overflow-y-auto px-3 py-4 text-sm font-bold">
+				{#each groups as g (groupKey(g.items))}
+					{@const key = groupKey(g.items)}
+					<div>
+						<button
+							type="button"
+							onclick={() => toggleGroup(key)}
+							aria-expanded={!isCollapsed(key)}
+							class="flex w-full items-center justify-between rounded-lg px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted transition hover:text-ink"
+						>
+							<span>{g.title()}</span>
+							<svg viewBox="0 0 16 16" class="h-3 w-3 transition-transform duration-200 {isCollapsed(key) ? '-rotate-90' : ''}" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+						</button>
+						{#if !isCollapsed(key)}
+							<div transition:slide={{ duration: 200 }} class="ml-3 space-y-1 border-l border-line pl-2">
+								{#each g.items as it}
+									<a
+										href={localize(it.href, data.locale)}
+										onclick={close}
+										aria-current={activeInternal === it.href ? 'page' : undefined}
+										class="block rounded-lg px-3 py-2 transition {activeInternal === it.href ? 'bg-brand text-brand-ink' : 'hover:bg-band'}"
+									>{it.label()}</a>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				{/each}
 				<div class="mt-2 border-t border-line pt-2">
 					<a
