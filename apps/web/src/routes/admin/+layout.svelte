@@ -18,6 +18,7 @@
 	const items = $derived.by(() => {
 		const all = [
 			{ href: '/admin/products', label: () => t().admin.productsTitle, show: adminSession.can('products.write') },
+			{ href: '/admin/featured', label: () => t().admin.featuredTitle, show: adminSession.can('products.write') },
 			{ href: '/admin/categories', label: () => t().admin.categoriesTitle, show: adminSession.can('categories.write') },
 			{ href: '/admin/menus', label: () => t().admin.menusTitle, show: adminSession.can('content.manage') },
 			{ href: '/admin/content', label: () => t().admin.contentTitle, show: adminSession.can('content.manage') },

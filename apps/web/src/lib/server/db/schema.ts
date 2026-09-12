@@ -62,6 +62,14 @@ export const productSlugRedirects = sqliteTable(
 	(table) => [index('product_slug_redirects_product_idx').on(table.productId)]
 );
 
+/** Curated home picks (ordered). Product delete cascades the pick away. */
+export const featuredProducts = sqliteTable('featured_products', {
+	productId: integer('product_id')
+		.primaryKey()
+		.references(() => products.id, { onDelete: 'cascade' }),
+	sort: integer('sort').notNull().default(0)
+});
+
 export const leads = sqliteTable('leads', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	name: text('name').notNull(),

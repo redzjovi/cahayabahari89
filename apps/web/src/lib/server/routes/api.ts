@@ -7,6 +7,7 @@ import { productsQuerySchema, storeProductSchema, updateProductSchema } from '..
 import { categoriesSortSchema, storeCategorySchema, updateCategorySchema, categoriesFilterSchema } from '../requests/category';
 import { contactSchema, leadsFilterSchema, leadsSortSchema } from '../requests/lead';
 import { storeUserSchema, updateUserSchema, usersFilterSchema, usersSortSchema } from '../requests/user';
+import { setFeaturedSchema } from '../requests/featured';
 import { storeMenuSchema, updateMenuSchema } from '../requests/menu';
 import { upsertPageSchema } from '../requests/content';
 import { storeRoleSchema, updateRoleSchema } from '../requests/role';
@@ -19,6 +20,7 @@ import { list as listProducts, show as showProduct } from '../controllers/Produc
 import { list as listMenus } from '../controllers/MenuController';
 import { show as showPage } from '../controllers/ContentController';
 import * as AdminMenu from '../controllers/MenuController';
+import * as AdminFeatured from '../controllers/admin/FeaturedController';
 import * as AdminContent from '../controllers/ContentController';
 import * as AdminContentImage from '../controllers/admin/ContentImageController';
 import { store as storeContact } from '../controllers/ContactController';
@@ -76,6 +78,10 @@ api.get('/admin/leads/:id', auth, need('leads.read'), AdminLead.show);
 api.post('/admin/images', auth, need('images.write'), AdminImage.store);
 api.patch('/admin/images/reorder', auth, need('images.write'), AdminImage.reorder);
 api.delete('/admin/images/:id', auth, need('images.write'), AdminImage.destroy);
+
+// ── Admin: featured home picks (RBAC: products.write) ──
+api.get('/admin/featured', auth, need('products.write'), AdminFeatured.index);
+api.put('/admin/featured', auth, need('products.write'), zValidator('json', setFeaturedSchema, validationHook), AdminFeatured.update);
 
 // ── Admin: menus + page content (RBAC: content.manage) ──
 api.get('/admin/menus', auth, need('content.manage'), zValidator('query', paginationQuerySchema, validationHook), AdminMenu.adminIndex);
