@@ -12,7 +12,7 @@ import { storeMenuSchema, updateMenuSchema } from '../requests/menu';
 import { upsertPageSchema } from '../requests/content';
 import { storeRoleSchema, updateRoleSchema } from '../requests/role';
 import { permissionsSortSchema, storePermissionSchema, updatePermissionSchema } from '../requests/permission';
-import { loginSchema } from '../requests/auth';
+import { loginSchema, updateProfileSchema, changePasswordSchema } from '../requests/auth';
 import { show as health } from '../controllers/HealthController';
 import { serve as serveImage } from '../controllers/ImageController';
 import { list as listCategories } from '../controllers/CategoryController';
@@ -127,5 +127,7 @@ api.delete('/admin/permissions/:slug', auth, need('roles.manage'), AdminPermissi
 api.post('/auth/login', zValidator('json', loginSchema, validationHook), Auth.login);
 api.post('/auth/logout', Auth.logout);
 api.get('/auth/me', auth, Auth.me);
+api.patch('/auth/profile', auth, zValidator('json', updateProfileSchema, validationHook), Auth.updateProfile);
+api.patch('/auth/password', auth, zValidator('json', changePasswordSchema, validationHook), Auth.changePassword);
 
 export default api;

@@ -205,7 +205,7 @@
 			</nav>
 
 			<div class="grid gap-2 border-t border-line px-4 py-3 text-sm">
-				<span class="truncate text-muted">{adminSession.user?.email}</span>
+				<a href={localize('/admin/profile', data.locale)} onclick={close} class="truncate text-muted underline hover:text-ink">{adminSession.user?.email}</a>
 				<div class="flex items-center gap-2">
 					<LangToggle />
 					<button type="button" onclick={logout} class="ml-auto rounded-full border border-line px-3.5 py-1.5 text-xs font-bold transition hover:border-brand">{t().admin.logout}</button>
