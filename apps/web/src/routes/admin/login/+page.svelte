@@ -15,7 +15,7 @@
 
 	onMount(async () => {
 		adminSession.init();
-		if (await adminSession.refresh()) await goto(localize('/admin/users', data.locale));
+		if (adminSession.user || (await adminSession.refresh())) await goto(localize('/admin/users', data.locale));
 	});
 
 	async function submit(e: SubmitEvent) {
@@ -34,6 +34,8 @@
 			}
 			const body = (await res.json()) as { data: { token: string } };
 			adminSession.setToken(body.data.token);
+			// Invalidate cached auth/me so layout's next refresh fetches fresh user (5m cache would otherwise serve stale empty)
+			try { const { queryClient } = await import('$lib/queryClient'); const { qk } = await import('$lib/queries/keys'); queryClient.invalidateQueries({ queryKey: qk.authMe() }); } catch {}
 			await goto(localize('/admin/users', data.locale));
 		} finally {
 			busy = false;

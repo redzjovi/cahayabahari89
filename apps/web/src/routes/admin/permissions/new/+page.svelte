@@ -15,7 +15,7 @@
 
 	onMount(async () => {
 		adminSession.init();
-		await adminSession.refresh();
+		await adminSession.refresh(); // cached via queryClient (5m staleTime)
 		ready = true;
 	});
 

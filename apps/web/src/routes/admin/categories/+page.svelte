@@ -5,16 +5,17 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch } from '$lib/admin-pagination';
+	import { createQuery, keepPreviousData, useQueryClient } from '@tanstack/svelte-query';
+	import { fetchJson } from '$lib/queries/fetcher';
+	import { qk } from '$lib/queries/keys';
 
 	type CatRow = { id: number; slug: string; name: string; status: string; products: number };
 
-	let items = $state<CatRow[]>([]);
-	let loading = $state(true);
-	let error = $state('');
 	let notice = $state('');
 	let confirming: string | null = $state(null);
 	let q = $state('');
 	let fStatus = $state('all');
+	let errorMsg = $state('');
 
 	type SortKey = 'slug' | 'name' | 'products' | 'status';
 	const SORT_API: Record<SortKey, { asc: string; desc: string; default: 'asc' | 'desc' }> = {
@@ -32,8 +33,7 @@
 	let sortDir = $state<'asc' | 'desc'>('asc');
 	let currentPage = $state(1);
 	let pageSize = $state<10 | 25 | 50 | 100>(10);
-	let total = $state(0);
-	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
+	let authed = $state(false);
 
 	const canView = $derived(adminSession.can('categories.write'));
 
@@ -52,44 +52,75 @@
 		});
 	}
 
-	/** Write filter state to the URL without SvelteKit navigation: goto() runs the
-	 * full navigation pipeline (focus restore, scroll handling) which fights the
-	 * native <select> dropdown on change. Bare replaceState keeps URLs shareable. */
 	function syncUrl(href: string) {
 		if (typeof history !== 'undefined') history.replaceState(history.state, '', href);
 	}
 
-	async function load() {
-		loading = true;
-		error = '';
-		const params = new URLSearchParams();
-		params.set('page', String(currentPage));
-		params.set('limit', String(pageSize));
-		params.set('sort', currentSortApi());
-		if (q.trim()) params.set('q', q.trim());
-		if (fStatus !== 'all') params.set('status', fStatus);
-		try {
-			const res = await adminSession.api(`/api/admin/categories?${params.toString()}`);
-			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { data: CatRow[]; meta: { total: number } };
-			items = data.data;
-			total = data.meta.total;
-			if (items.length === 0 && currentPage > 1) {
-				currentPage = 1;
-				syncUrl(buildSearch({ page: 1, limit: pageSize, sort: currentSortApi(), q: q.trim(), status: fStatus }));
-				await load();
-				return;
-			}
-		} catch {
-			error = t().admin.loadFail;
-		} finally {
-			loading = false;
+	const queryClient = useQueryClient();
+	const params = $derived({
+		page: currentPage,
+		limit: pageSize,
+		sort: currentSortApi(),
+		q: q.trim(),
+		status: fStatus
+	});
+
+	const categoriesQuery = createQuery(() => ({
+		queryKey: qk.categories(params),
+		enabled: authed && canView,
+		placeholderData: keepPreviousData,
+		staleTime: 45_000,
+		gcTime: 10 * 60_000,
+		queryFn: async ({ signal }) => {
+			const p = new URLSearchParams();
+			p.set('page', String(params.page));
+			p.set('limit', String(params.limit));
+			p.set('sort', params.sort as string);
+			if (params.q) p.set('q', params.q as string);
+			if (params.status !== 'all') p.set('status', params.status as string);
+			return fetchJson<{ data: CatRow[]; meta: { total: number } }>(`/api/admin/categories?${p.toString()}`, { signal });
 		}
-	}
+	}));
+
+	const items = $derived(categoriesQuery.data?.data ?? []);
+	const total = $derived(categoriesQuery.data?.meta.total ?? 0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
+	const loading = $derived(categoriesQuery.isPending);
+	const isFetching = $derived(categoriesQuery.isFetching);
+	const queryError = $derived(categoriesQuery.error ? t().admin.loadFail : '');
+	const displayError = $derived(errorMsg || queryError);
+
+	$effect(() => {
+		if (!categoriesQuery.isPending && items.length === 0 && currentPage > 1 && total > 0) {
+			currentPage = 1;
+			syncUrl(buildSearch({ page: 1, limit: pageSize, sort: currentSortApi(), q: q.trim(), status: fStatus }));
+		}
+	});
+
+	$effect(() => {
+		if (currentPage < pageCount && authed && canView) {
+			const next = { ...params, page: currentPage + 1 };
+			queryClient.prefetchQuery({
+				queryKey: qk.categories(next),
+				staleTime: 45_000,
+				queryFn: async ({ signal }) => {
+					const p = new URLSearchParams();
+					p.set('page', String(next.page));
+					p.set('limit', String(next.limit));
+					p.set('sort', next.sort as string);
+					if (next.q) p.set('q', next.q as string);
+					if (next.status !== 'all') p.set('status', next.status as string);
+					return fetchJson<{ data: CatRow[]; meta: { total: number } }>(`/api/admin/categories?${p.toString()}`, { signal });
+				}
+			});
+		}
+	});
 
 	onMount(async () => {
 		adminSession.init();
-		if (!(await adminSession.refresh())) return;
+		if (adminSession.user) authed = true;
+		else authed = await adminSession.refresh();
+		if (!authed) return;
 		const qParam = readStringParam('q');
 		if (qParam) q = qParam;
 		const statusParam = readStringParam('status', ['active', 'draft']);
@@ -102,7 +133,6 @@
 		}
 		currentPage = readIntParam('page', 1);
 		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
-		await load();
 	});
 
 	function apiError(json: unknown): string {
@@ -113,20 +143,20 @@
 	}
 
 	async function remove(slug: string) {
-		error = '';
+		errorMsg = '';
 		notice = '';
 		try {
 			const res = await adminSession.api(`/api/admin/categories/${slug}`, { method: 'DELETE' });
 			if (!res.ok) {
-				error = apiError(await res.json());
+				errorMsg = apiError(await res.json());
 				confirming = null;
 				return;
 			}
 			notice = t().admin.saved;
 			confirming = null;
-			await load();
+			queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
 		} catch {
-			error = t().admin.loadFail;
+			errorMsg = t().admin.loadFail;
 		}
 	}
 
@@ -139,7 +169,6 @@
 		}
 		currentPage = 1;
 		syncUrl(currentSearchHref());
-		void load();
 	}
 
 	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
@@ -159,25 +188,22 @@
 		return sortDir === 'asc' ? '▲' : '▼';
 	}
 
-	async function setPage(p: number) {
+	function setPage(p: number) {
 		const next = Math.max(1, Math.min(pageCount, p));
 		if (next === currentPage) return;
 		currentPage = next;
 		syncUrl(currentSearchHref());
-		await load();
 	}
 
-	async function setPageSize(s: number) {
+	function setPageSize(s: number) {
 		pageSize = (s as 10 | 25 | 50 | 100);
 		currentPage = 1;
 		syncUrl(currentSearchHref());
-		await load();
 	}
 
-	async function applyFilters() {
+	function applyFilters() {
 		currentPage = 1;
 		syncUrl(currentSearchHref());
-		await load();
 	}
 
 	let qDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -197,8 +223,9 @@
 		</button>
 	</div>
 
-	{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
+	{#if displayError}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{displayError}</p>{/if}
 	{#if notice}<p class="mt-4 rounded-lg bg-emerald-500/10 p-3 text-sm font-medium text-emerald-600">{notice}</p>{/if}
+	{#if isFetching && !loading}<p class="mt-2 text-xs text-muted">Updating…</p>{/if}
 
 	{#if !canView}
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>

@@ -5,6 +5,9 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
+	import { createQuery, keepPreviousData, useQueryClient } from '@tanstack/svelte-query';
+	import { fetchJson } from '$lib/queries/fetcher';
+	import { qk } from '$lib/queries/keys';
 
 	type UserRow = { id: number; email: string; name: string; status: string; roles: string[]; createdAt?: string | null };
 
@@ -23,10 +26,6 @@
 		SORT_FROM_API[v.desc] = { key: k as SortKey, dir: 'desc' };
 	}
 
-	let items = $state<UserRow[]>([]);
-	let loading = $state(true);
-	let error = $state('');
-	let notice = $state('');
 	let fEmail = $state('');
 	let fName = $state('');
 	let fStatus = $state<'all' | 'active' | 'suspended'>('all');
@@ -34,48 +33,77 @@
 	let sortDir = $state<'asc' | 'desc'>('desc');
 	let currentPage = $state(1);
 	let pageSize = $state<10 | 25 | 50 | 100>(10);
-	let total = $state(0);
-	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
+	let authed = $state(false);
 
 	const canView = $derived(adminSession.can('users.manage'));
+	const queryClient = useQueryClient();
 
-	async function load() {
-		loading = true;
-		error = '';
-		const params = new URLSearchParams();
-		params.set('page', String(currentPage));
-		params.set('limit', String(pageSize));
-		const m = SORT_API[sortKey];
-		params.set('sort', sortDir === 'asc' ? m.asc : m.desc);
-		if (fEmail.trim()) params.set('email', fEmail.trim());
-		if (fName.trim()) params.set('name', fName.trim());
-		if (fStatus !== 'all') params.set('status', fStatus);
-		try {
-			const res = await adminSession.api(`/api/admin/users?${params.toString()}`);
-			if (!res.ok) throw new Error('load');
-			const data = (await res.json()) as { data: UserRow[]; meta: { total: number } };
-			items = data.data;
-			total = data.meta.total;
-			if (items.length === 0 && currentPage > 1) {
-				currentPage = 1;
-				await gotoSamePage(buildSearch({
-					page: 1, limit: pageSize,
-					sort: SORT_API[sortKey][sortDir],
-					email: fEmail, name: fName, status: fStatus
-				}));
-				await load();
-				return;
-			}
-		} catch {
-			error = t().admin.loadFail;
-		} finally {
-			loading = false;
+	const params = $derived({
+		page: currentPage,
+		limit: pageSize,
+		sort: SORT_API[sortKey][sortDir],
+		email: fEmail.trim(),
+		name: fName.trim(),
+		status: fStatus
+	});
+
+	const usersQuery = createQuery(() => ({
+		queryKey: qk.users(params),
+		enabled: authed && canView,
+		placeholderData: keepPreviousData,
+		staleTime: 30_000,
+		queryFn: async ({ signal }) => {
+			const p = new URLSearchParams();
+			p.set('page', String(params.page));
+			p.set('limit', String(params.limit));
+			p.set('sort', params.sort as string);
+			if (params.email) p.set('email', params.email as string);
+			if (params.name) p.set('name', params.name as string);
+			if (params.status !== 'all') p.set('status', params.status as string);
+			return fetchJson<{ data: UserRow[]; meta: { total: number } }>(`/api/admin/users?${p.toString()}`, { signal });
 		}
-	}
+	}));
+
+	const items = $derived(usersQuery.data?.data ?? []);
+	const total = $derived(usersQuery.data?.meta.total ?? 0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
+	const loading = $derived(usersQuery.isPending);
+	const isFetching = $derived(usersQuery.isFetching);
+	const queryError = $derived(usersQuery.error ? t().admin.loadFail : '');
+	const displayError = $derived(queryError);
+
+	$effect(() => {
+		if (!usersQuery.isPending && items.length === 0 && currentPage > 1 && total > 0) {
+			currentPage = 1;
+			void gotoSamePage(buildSearch({ page: 1, limit: pageSize, sort: SORT_API[sortKey][sortDir], email: fEmail, name: fName, status: fStatus }));
+		}
+	});
+
+	$effect(() => {
+		if (currentPage < pageCount && authed && canView) {
+			const next = { ...params, page: currentPage + 1 };
+			queryClient.prefetchQuery({
+				queryKey: qk.users(next),
+				staleTime: 30_000,
+				queryFn: async ({ signal }) => {
+					const p = new URLSearchParams();
+					p.set('page', String(next.page));
+					p.set('limit', String(next.limit));
+					p.set('sort', next.sort as string);
+					if (next.email) p.set('email', next.email as string);
+					if (next.name) p.set('name', next.name as string);
+					if (next.status !== 'all') p.set('status', next.status as string);
+					return fetchJson<{ data: UserRow[]; meta: { total: number } }>(`/api/admin/users?${p.toString()}`, { signal });
+				}
+			});
+		}
+	});
 
 	onMount(async () => {
 		adminSession.init();
-		if (!(await adminSession.refresh())) return;
+		if (adminSession.user) authed = true;
+		else authed = await adminSession.refresh();
+		if (!authed) return;
 		const emailParam = readStringParam('email');
 		if (emailParam) fEmail = emailParam;
 		const nameParam = readStringParam('name');
@@ -90,17 +118,11 @@
 		}
 		currentPage = readIntParam('page', 1);
 		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
-		await load();
 	});
 
 	async function applyFilters() {
 		currentPage = 1;
-		await gotoSamePage(buildSearch({
-			page: 1, limit: pageSize,
-			sort: SORT_API[sortKey][sortDir],
-			email: fEmail, name: fName, status: fStatus
-		}));
-		await load();
+		await gotoSamePage(buildSearch({ page: 1, limit: pageSize, sort: SORT_API[sortKey][sortDir], email: fEmail, name: fName, status: fStatus }));
 	}
 
 	function toggleSort(key: SortKey) {
@@ -111,12 +133,7 @@
 			sortDir = SORT_API[key].default;
 		}
 		currentPage = 1;
-		gotoSamePage(buildSearch({
-			page: 1, limit: pageSize,
-			sort: SORT_API[sortKey][sortDir],
-			email: fEmail, name: fName, status: fStatus
-		}));
-		void load();
+		gotoSamePage(buildSearch({ page: 1, limit: pageSize, sort: SORT_API[sortKey][sortDir], email: fEmail, name: fName, status: fStatus }));
 	}
 
 	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
@@ -154,23 +171,13 @@
 		const next = Math.max(1, Math.min(pageCount, p));
 		if (next === currentPage) return;
 		currentPage = next;
-		await gotoSamePage(buildSearch({
-			page: currentPage, limit: pageSize,
-			sort: SORT_API[sortKey][sortDir],
-			email: fEmail, name: fName, status: fStatus
-		}));
-		await load();
+		await gotoSamePage(buildSearch({ page: currentPage, limit: pageSize, sort: SORT_API[sortKey][sortDir], email: fEmail, name: fName, status: fStatus }));
 	}
 
 	async function setPageSize(s: number) {
 		pageSize = (s as 10 | 25 | 50 | 100);
 		currentPage = 1;
-		await gotoSamePage(buildSearch({
-			page: 1, limit: pageSize,
-			sort: SORT_API[sortKey][sortDir],
-			email: fEmail, name: fName, status: fStatus
-		}));
-		await load();
+		await gotoSamePage(buildSearch({ page: 1, limit: pageSize, sort: SORT_API[sortKey][sortDir], email: fEmail, name: fName, status: fStatus }));
 	}
 
 	let fDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -190,8 +197,8 @@
 		</button>
 	</div>
 
-	{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
-	{#if notice}<p class="mt-4 rounded-lg bg-emerald-500/10 p-3 text-sm font-medium text-emerald-600">{notice}</p>{/if}
+	{#if displayError}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{displayError}</p>{/if}
+	{#if isFetching && !loading}<p class="mt-2 text-xs text-muted">Updating…</p>{/if}
 
 	{#if !canView}
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>

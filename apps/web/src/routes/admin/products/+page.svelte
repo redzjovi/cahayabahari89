@@ -6,6 +6,9 @@
 	import { onMount } from 'svelte';
 	import { PAGE_SIZES, readIntParam, readStringParam, buildSearch, gotoSamePage } from '$lib/admin-pagination';
 	import { preview } from '$lib/preview.svelte';
+	import { createQuery, keepPreviousData, useQueryClient } from '@tanstack/svelte-query';
+	import { fetchJson } from '$lib/queries/fetcher';
+	import { qk } from '$lib/queries/keys';
 
 	type ProductRow = {
 		id: number; slug: string; sku: string | null; name: string; description: string | null;
@@ -15,15 +18,13 @@
 	};
 	type CatRow = { id: number; slug: string; name: string };
 
-	let items = $state<ProductRow[]>([]);
-	let cats = $state<CatRow[]>([]);
-	let loading = $state(true);
-	let error = $state('');
+	let errorMsg = $state('');
 	let notice = $state('');
 	let q = $state('');
 	let fCat = $state('');
 	let fStatus = $state('all');
 	let confirming: string | null = $state(null);
+	let authed = $state(false);
 
 	type SortKey = 'name' | 'updated' | 'price' | 'status';
 	const SORT_API: Record<SortKey, { asc: string; desc: string; default: 'asc' | 'desc' }> = {
@@ -43,8 +44,6 @@
 	let sortDir = $state<'asc' | 'desc'>('desc');
 	let currentPage = $state(1);
 	let pageSize = $state<10 | 25 | 50 | 100>(10);
-	let total = $state(0);
-	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
 	const canView = $derived(adminSession.can('products.write'));
 
@@ -64,43 +63,85 @@
 		});
 	}
 
-	async function load() {
-		loading = true;
-		error = '';
-		const params = new URLSearchParams();
-		params.set('page', String(currentPage));
-		params.set('limit', String(pageSize));
-		params.set('sort', currentSortApi());
-		if (q.trim()) params.set('q', q.trim());
-		if (fCat) params.set('cat', String(fCat));
-		if (fStatus !== 'all') params.set('status', fStatus);
-		try {
-			const [pRes, cRes] = await Promise.all([
-				adminSession.api(`/api/products?${params.toString()}`),
-				adminSession.api('/api/categories?page=1&limit=100')
-			]);
-			if (!pRes.ok || !cRes.ok) throw new Error('load');
-			const data = (await pRes.json()) as { data: ProductRow[]; meta: { total: number } };
-			items = data.data;
-			total = data.meta.total;
-			cats = ((await cRes.json()) as { data: CatRow[] }).data;
-			// snap back: if the requested page is now empty, jump to page 1
-			if (items.length === 0 && currentPage > 1) {
-				currentPage = 1;
-				await gotoSamePage(currentSearchHref());
-				await load();
-				return;
-			}
-		} catch {
-			error = t().admin.loadFail;
-		} finally {
-			loading = false;
+	const queryClient = useQueryClient();
+
+	const params = $derived({
+		page: currentPage,
+		limit: pageSize,
+		sort: currentSortApi(),
+		q: q.trim(),
+		cat: fCat,
+		status: fStatus
+	});
+
+	const productsQuery = createQuery(() => ({
+		queryKey: qk.products(params),
+		enabled: authed && canView,
+		placeholderData: keepPreviousData,
+		staleTime: 30_000,
+		gcTime: 10 * 60_000,
+		queryFn: async ({ signal }) => {
+			const p = new URLSearchParams();
+			p.set('page', String(params.page));
+			p.set('limit', String(params.limit));
+			p.set('sort', params.sort as string);
+			if (params.q) p.set('q', params.q as string);
+			if (params.cat) p.set('cat', params.cat as string);
+			if (params.status !== 'all') p.set('status', params.status as string);
+			// products are public endpoint but reuse adminFetch for consistent auth header
+			return fetchJson<{ data: ProductRow[]; meta: { total: number } }>(`/api/products?${p.toString()}`, { signal });
 		}
-	}
+	}));
+
+	const catsQuery = createQuery(() => ({
+		queryKey: qk.categoriesList(),
+		enabled: authed && canView,
+		staleTime: 5 * 60_000,
+		gcTime: 15 * 60_000,
+		queryFn: async ({ signal }) => fetchJson<{ data: CatRow[] }>(`/api/categories?page=1&limit=100`, { signal })
+	}));
+
+	const items = $derived(productsQuery.data?.data ?? []);
+	const total = $derived(productsQuery.data?.meta.total ?? 0);
+	const pageCount = $derived(Math.max(1, Math.ceil(total / pageSize)));
+	const cats = $derived(catsQuery.data?.data ?? []);
+	const loading = $derived(productsQuery.isPending);
+	const isFetching = $derived(productsQuery.isFetching || catsQuery.isFetching);
+	const queryError = $derived(productsQuery.error || catsQuery.error ? t().admin.loadFail : '');
+	const displayError = $derived(errorMsg || queryError);
+
+	$effect(() => {
+		if (!productsQuery.isPending && items.length === 0 && currentPage > 1 && total > 0) {
+			currentPage = 1;
+			void gotoSamePage(currentSearchHref());
+		}
+	});
+
+	$effect(() => {
+		if (currentPage < pageCount && authed && canView) {
+			const next = { ...params, page: currentPage + 1 };
+			queryClient.prefetchQuery({
+				queryKey: qk.products(next),
+				staleTime: 30_000,
+				queryFn: async ({ signal }) => {
+					const p = new URLSearchParams();
+					p.set('page', String(next.page));
+					p.set('limit', String(next.limit));
+					p.set('sort', next.sort as string);
+					if (next.q) p.set('q', next.q as string);
+					if (next.cat) p.set('cat', next.cat as string);
+					if (next.status !== 'all') p.set('status', next.status as string);
+					return fetchJson<{ data: ProductRow[]; meta: { total: number } }>(`/api/products?${p.toString()}`, { signal });
+				}
+			});
+		}
+	});
 
 	onMount(async () => {
 		adminSession.init();
-		if (!(await adminSession.refresh())) return;
+		if (adminSession.user) authed = true;
+		else authed = await adminSession.refresh();
+		if (!authed) return;
 		const qParam = readStringParam('q');
 		if (qParam) q = qParam;
 		const catParam = readStringParam('cat');
@@ -115,7 +156,6 @@
 		}
 		currentPage = readIntParam('page', 1);
 		pageSize = (readIntParam('limit', 10, [...PAGE_SIZES]) as 10 | 25 | 50 | 100);
-		await load();
 	});
 
 	function apiError(json: unknown): string {
@@ -127,20 +167,21 @@
 	}
 
 	async function remove(slug: string) {
-		error = '';
+		errorMsg = '';
 		notice = '';
 		try {
 			const res = await adminSession.api(`/api/admin/products/${slug}`, { method: 'DELETE' });
 			if (!res.ok) {
-				error = apiError(await res.json());
+				errorMsg = apiError(await res.json());
 				confirming = null;
 				return;
 			}
 			notice = t().admin.saved;
 			confirming = null;
-			await load();
+			queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+			queryClient.invalidateQueries({ queryKey: ['products'] });
 		} catch {
-			error = t().admin.loadFail;
+			errorMsg = t().admin.loadFail;
 		}
 	}
 
@@ -154,7 +195,6 @@
 		currentPage = 1;
 		void (async () => {
 			await gotoSamePage(currentSearchHref());
-			await load();
 		})();
 	}
 
@@ -194,20 +234,17 @@
 		if (next === currentPage) return;
 		currentPage = next;
 		await gotoSamePage(currentSearchHref());
-		await load();
 	}
 
 	async function setPageSize(s: number) {
 		pageSize = (s as 10 | 25 | 50 | 100);
 		currentPage = 1;
 		await gotoSamePage(currentSearchHref());
-		await load();
 	}
 
 	async function applyFilters() {
 		currentPage = 1;
 		await gotoSamePage(currentSearchHref());
-		await load();
 	}
 
 	let qDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -227,8 +264,9 @@
 		</button>
 	</div>
 
-	{#if error}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{error}</p>{/if}
+	{#if displayError}<p class="mt-4 rounded-lg bg-red-500/10 p-3 text-sm font-medium text-red-500">{displayError}</p>{/if}
 	{#if notice}<p class="mt-4 rounded-lg bg-emerald-500/10 p-3 text-sm font-medium text-emerald-600">{notice}</p>{/if}
+	{#if isFetching && !loading}<p class="mt-2 text-xs text-muted">Updating…</p>{/if}
 
 	{#if !canView}
 		<p class="mt-6 rounded-card border border-line p-6 text-muted">{t().admin.noAccess}</p>

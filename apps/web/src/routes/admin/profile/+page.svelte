@@ -49,6 +49,7 @@
 				profileError = apiError(await res.json());
 				return;
 			}
+			try { const { queryClient } = await import('$lib/queryClient'); const { qk } = await import('$lib/queries/keys'); queryClient.invalidateQueries({ queryKey: qk.authMe() }); } catch {}
 			await adminSession.refresh();
 			profileOk = true;
 		} catch {

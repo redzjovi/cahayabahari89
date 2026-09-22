@@ -113,7 +113,7 @@
 
 	onMount(async () => {
 		adminSession.init();
-		if (!(await adminSession.refresh())) return;
+		if (adminSession.user) { /* layout already cached */ } else if (!(await adminSession.refresh())) return;
 		await load();
 	});
 

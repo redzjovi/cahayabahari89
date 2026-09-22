@@ -59,7 +59,7 @@
 
 	onMount(async () => {
 		adminSession.init();
-		if (!(await adminSession.refresh())) return;
+		if (adminSession.user) { /* layout already cached */ } else if (!(await adminSession.refresh())) return;
 		const locParam = readStringParam('loc', ['all', 'header', 'social']);
 		if (locParam) fLoc = locParam;
 		currentPage = readIntParam('page', 1);

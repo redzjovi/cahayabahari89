@@ -51,11 +51,31 @@ class AdminSession {
 		return this.token ? `Bearer ${this.token}` : '';
 	}
 
-	/** Load /auth/me; returns false (and caller redirects) when not logged in. */
+	/** Load /auth/me; returns false (and caller redirects) when not logged in.
+	 *  When TanStack is available (admin area), prefer the shared cached query via
+	 *  `queryClient.fetchQuery(qk.authMe())` to dedup. Fallback to direct fetch
+	 *  keeps login/profile pages working outside QueryClientProvider.
+	 */
 	async refresh(): Promise<boolean> {
 		if (!this.token) {
 			this.user = null;
 			return false;
+		}
+		// Try cached query first (dedup + 5m staleTime)
+		try {
+			const { queryClient } = await import('$lib/queryClient');
+			const { qk } = await import('$lib/queries/keys');
+			const { fetchJson } = await import('$lib/queries/fetcher');
+			// If queryClient has data, fetchQuery will return cached without network if fresh
+			const data = await queryClient.fetchQuery({
+				queryKey: qk.authMe(),
+				staleTime: 5 * 60_000,
+				queryFn: () => fetchJson<{ data: AdminUser }>('/api/auth/me')
+			});
+			this.user = data.data;
+			return true;
+		} catch {
+			// fallback: direct fetch (e.g. outside provider or stale)
 		}
 		try {
 			const res = await this.api('/api/auth/me');
@@ -72,6 +92,11 @@ class AdminSession {
 		}
 	}
 
+	/** Sync helper for TanStack auth query — called via $effect in layout. */
+	syncFromQuery(data: AdminUser | null) {
+		this.user = data;
+	}
+
 	async logout() {
 		try {
 			await this.api('/api/auth/logout', { method: 'POST' });
@@ -80,6 +105,11 @@ class AdminSession {
 		}
 		this.setToken(null);
 		this.user = null;
+		// Clear TanStack cache on logout to avoid stale admin data leaking
+		try {
+			const { queryClient } = await import('$lib/queryClient');
+			queryClient.clear();
+		} catch {}
 		await goto('/admin/login');
 	}
 

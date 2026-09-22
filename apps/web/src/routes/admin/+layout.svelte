@@ -9,6 +9,8 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { browser } from '$app/environment';
+	import { QueryClientProvider } from '@tanstack/svelte-query';
+	import { queryClient } from '$lib/queryClient';
 
 	let { children, data } = $props();
 	let checked = $state(false);
@@ -221,9 +223,11 @@
 			<span class="font-extrabold">Admin</span>
 		</div>
 
-		<!-- Content -->
-		<div class="min-w-0 flex-1">
-			{@render children()}
-		</div>
+		<!-- Content (TanStack Query scoped to admin) -->
+		<QueryClientProvider client={queryClient}>
+			<div class="min-w-0 flex-1">
+				{@render children()}
+			</div>
+		</QueryClientProvider>
 	</div>
 {/if}
