@@ -6,7 +6,7 @@ export default defineConfig({
 	dialect: 'sqlite',
 	driver: 'd1-http',
 	dbCredentials: {
-		wrangerConfigPath: './wrangler.jsonc',
-		databaseId: 'ca94baff-e473-475c-a22e-571e6f1a415c'
+		wranglerConfigPath: './wrangler.jsonc',
+		databaseId: '17c04c23-cefa-42fb-b274-1c290d1146af'
 	}
 });
